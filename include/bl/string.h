@@ -36,9 +36,11 @@ public:
   /// Deallocates memory used by the string.
   ~String();
 
-  // Disable copy-constructor
-  String(const String&) = delete;
-  String(String&&)      = default;
+  /// Clones the string.
+  ///
+  /// @note The capacity of the cloned string will not be the same as the
+  /// original string, but the length and contents will be the same.
+  String(const String&);
 
   /// Returns the underyling string buffer.
   const_cstr getRaw(void) const;
@@ -51,12 +53,6 @@ public:
 
   /// Checks if the string is empty.
   bool       isEmpty(void) const;
-
-  /// Clones the string.
-  ///
-  /// @note The capacity of the cloned string will not be the same as the
-  /// original string, but the length and contents will be the same.
-  String     clone(void) const;
 
   /// Removes all of the string's contents, but leaves the capacity unchanged.
   void       clear(void);
@@ -99,9 +95,20 @@ public:
   ///
   /// This will return the index where the sub-string was found, or `-1` if it
   /// wasn't found.
-  i32        find(const_cstr substr);
+  i32        find(const_cstr substr) const;
 
-  // TODO: Add shrinkToFit, split, and compare funcs
+  /// Shrinks the capacity of the string to match its length.
+  void       shrinkToFit(void);
+
+  /// Splits the string into two at the given index.
+  ///
+  /// The original string contains bytes in the range `[0, idx)`, and the
+  /// returned string contains the bytes in the range `[idx, len)`.
+  String     splitOff(usize idx);
+
+  // TODO: Add split and compare funcs
+  //
+  // TODO: Operator overload for index operator
 
 private:
   /// Backing allocator used for internal allocations.

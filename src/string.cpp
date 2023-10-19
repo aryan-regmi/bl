@@ -5,6 +5,8 @@
 #include "bl/mem/c_allocator.h" // CAllocator
 #include "bl/primitives.h"      // const_cstr, cstr, usize, u8
 
+#include <algorithm>
+#include <cstdio>
 #include <cstring> // strncpy, strlen, memmove
 
 namespace bl {
@@ -15,6 +17,7 @@ enum class StringError {
   InvalidCString,
   BufferAllocationFailed,
   BufferDeallocationFailed,
+  BufferResizeFailed,
   StrncpyFailed,
   ResizeFailed,
 };
@@ -33,6 +36,8 @@ const_cstr errMsg(StringError err) {
     return "StringError: Invalid C-string (the provided C-string was null)";
   case StringError::BufferDeallocationFailed:
     return "StringError: Unable to deallocate the string buffer";
+  case StringError::BufferResizeFailed:
+    return "StringError: Unable to resize for the string buffer";
   }
 
   return nullptr;
@@ -71,13 +76,15 @@ String::String(mem::Allocator* allocator, usize capacity) : cap(capacity) {
     }
   }
 
+  this->allocator = allocator;
+
   if (capacity != 0) {
     cstr data = (cstr)allocator->allocRaw(capacity + 1);
     if (data == nullptr) {
       BL_THROW(errMsg(StringError::BufferAllocationFailed));
       return;
     }
-
+    this->data           = data;
     this->data[capacity] = '\0';
   }
 }
@@ -160,11 +167,33 @@ String::String(const_cstr str) {
   this->data  = copied;
 }
 
+String::String(const String& other) {
+  Error::resetError();
+
+  this->allocator = other.allocator;
+  this->len       = other.len;
+  this->cap       = other.len;
+
+  cstr data       = (cstr)this->allocator->allocRaw(this->len + 1);
+  if (data == nullptr) {
+    BL_THROW(errMsg(StringError::BufferAllocationFailed));
+    return;
+  }
+  this->data  = data;
+
+  cstr copied = strncpy(this->data, other.data, this->len);
+  if (copied == nullptr) {
+    BL_THROW(errMsg(StringError::StrncpyFailed));
+    return;
+  }
+  copied[this->len] = '\0';
+  this->data        = copied;
+}
+
 String::~String() {
-  this->allocator->deallocRaw(this->data);
-  this->len       = 0;
-  this->cap       = 0;
-  this->allocator = nullptr;
+  if (this->cap != 0) {
+    this->allocator->deallocRaw(this->data);
+  }
 }
 
 const_cstr String::getRaw(void) const { return this->data; }
@@ -175,23 +204,7 @@ usize      String::getCap(void) const { return this->cap; }
 
 bool       String::isEmpty(void) const { return this->len == 0; }
 
-String     String::clone(void) const {
-  Error::resetError();
-
-  String copy   = String(this->allocator, this->len + 1);
-
-  cstr   copied = std::strncpy(copy.data, this->data, this->len);
-  if (copied == nullptr) {
-    BL_THROW(errMsg(StringError::StrncpyFailed));
-    return String();
-  }
-  copied[this->len] = '\0';
-  copy.data         = copied;
-
-  return copy;
-}
-
-void String::clear(void) {
+void       String::clear(void) {
   if (this->len != 0) {
     this->data[0] = '\0';
     this->len     = 0;
@@ -387,7 +400,7 @@ void String::resize(void) {
   this->cap  = new_cap;
 }
 
-i32 String::find(const_cstr substr) {
+i32 String::find(const_cstr substr) const {
   // Input validation
   {
     Error::resetError();
@@ -404,6 +417,52 @@ i32 String::find(const_cstr substr) {
   }
 
   return (i32)(found - this->data);
+}
+
+void String::shrinkToFit(void) {
+  if (this->cap > this->len) {
+    cstr resized = (cstr)this->allocator->resizeRaw(this->data, this->len + 1);
+    if (resized == nullptr) {
+      BL_THROW(errMsg(StringError::InvalidCString));
+      return;
+    }
+
+    this->data = resized;
+    this->cap  = this->len;
+  }
+}
+
+String String::splitOff(usize idx) {
+  if (idx == 0) {
+    String* split = this;
+    this->clear();
+    return *split;
+  }
+
+  if (idx == this->len - 1) {
+    return String(this->allocator);
+  }
+
+  // TODO: Finish impl
+
+  // Create new string with enough capacity to hold the split
+  // String split = String(&DEFAULT_C_ALLOCATOR, this->len - idx);
+  // usize split_size = this->len - idx;
+  // cstr  split_data = (cstr)this->allocator->allocRaw(split_size + 1);
+  // if (split_data == nullptr) {
+  //   BL_THROW(errMsg(StringError::BufferAllocationFailed));
+  //   return String();
+  // }
+  // split_data[split_size] = '\0';
+  // String split           = String();
+  // split.allocator        = this->allocator;
+  // split.cap              = split_size;
+  // split.len              = split_size;
+  // split.data             = split_data;
+
+  // Copy from original into split
+
+  // return split;
 }
 
 } // namespace bl

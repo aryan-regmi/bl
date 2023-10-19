@@ -1,0 +1,67 @@
+{"dhatFileVersion":2
+,"mode":"heap","verb":"Allocated"
+,"bklt":true,"bkacc":true
+,"tu":"instrs","Mtu":"Minstr"
+,"tuth":500
+,"cmd":"build/tests/string_tests"
+,"pid":12563
+,"te":3282536
+,"tg":3273598
+,"pps":
+ [{"tb":73728,"tbk":1
+  ,"tl":19319
+  ,"mb":73728,"mbk":1
+  ,"gb":73728,"gbk":1
+  ,"eb":0,"ebk":0
+  ,"rb":0,"wb":16
+  ,"fs":[1,2,3,4,5]
+  }
+ ,{"tb":1024,"tbk":1
+  ,"tl":12354
+  ,"mb":1024,"mbk":1
+  ,"gb":1024,"gbk":1
+  ,"eb":0,"ebk":0
+  ,"rb":20,"wb":20
+  ,"acc":[-10,4,-1014,0]
+  ,"fs":[1,6,7,8,9,10,11,12,13,14]
+  }
+ ,{"tb":6,"tbk":1
+  ,"tl":6154
+  ,"mb":6,"mbk":1
+  ,"gb":6,"gbk":1
+  ,"eb":0,"ebk":0
+  ,"rb":5,"wb":6
+  ,"acc":[-5,2,1]
+  ,"fs":[1,15,12,13,14]
+  }
+ ,{"tb":6,"tbk":1
+  ,"tl":1802
+  ,"mb":6,"mbk":1
+  ,"gb":6,"gbk":1
+  ,"eb":0,"ebk":0
+  ,"rb":0,"wb":6
+  ,"acc":[-6,1]
+  ,"fs":[1,15,16,17,14]
+  }
+ ]
+,"ftbl":
+ ["[root]"
+ ,"0x4843794: malloc (in /usr/libexec/valgrind/vgpreload_dhat-amd64-linux.so)"
+ ,"0x492BB2D: ??? (in /usr/lib64/libstdc++.so.6.0.32)"
+ ,"0x40050ED: call_init (in /usr/lib64/ld-linux-x86-64.so.2)"
+ ,"0x40051EB: _dl_init (in /usr/lib64/ld-linux-x86-64.so.2)"
+ ,"0x401BFCF: ??? (in /usr/lib64/ld-linux-x86-64.so.2)"
+ ,"0x4B5D0CC: _IO_file_doallocate (in /usr/lib64/libc.so.6)"
+ ,"0x4B6CCE8: _IO_doallocbuf (in /usr/lib64/libc.so.6)"
+ ,"0x4B6ACA7: _IO_file_overflow@@GLIBC_2.2.5 (in /usr/lib64/libc.so.6)"
+ ,"0x4B6B846: _IO_file_xsputn@@GLIBC_2.2.5 (in /usr/lib64/libc.so.6)"
+ ,"0x4B5FA88: puts (in /usr/lib64/libc.so.6)"
+ ,"0x48575CC: bl::mem::Allocator::allocRaw(unsigned long) (allocator.h:17)"
+ ,"0x4856905: bl::String::String(char const*) (string.cpp:147)"
+ ,"0x401D91: splitTest() (string_tests.cpp:138)"
+ ,"0x401DEC: main (string_tests.cpp:164)"
+ ,"0x48575DD: bl::mem::Allocator::allocRaw(unsigned long) (allocator.h:18)"
+ ,"0x4856A82: bl::String::String(bl::String const&) (string.cpp:179)"
+ ,"0x401DA9: splitTest() (string_tests.cpp:140)"
+ ]
+}

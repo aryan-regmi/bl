@@ -2,6 +2,7 @@
 #define BL_ALLOCATOR_H
 
 #include "bl/primitives.h" // usize
+#include <cstdio>
 
 namespace bl::mem {
 using namespace primitives;

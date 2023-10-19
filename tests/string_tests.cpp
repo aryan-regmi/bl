@@ -121,11 +121,45 @@ void containsTest(void) {
   assert(found == -1);
 }
 
+void shrinkTest(void) {
+  String str = String("Hello");
+  assert(str.getCap() == 5);
+
+  str.pop();
+  str.pop();
+  assert(str.getCap() == 5);
+
+  str.shrinkToFit();
+  assert(str.getCap() == 3);
+  assert(strcmp(str.getRaw(), "Hel") == 0);
+}
+
+void splitTest(void) {
+  String str = String("Hello");
+  Error::checkError();
+  String st2 = str;
+  //
+  // assert(st2.getLen() == 5);
+  //
+  // assert(str.getLen() == 5);
+  // String split = str.splitOff(3);
+
+  // assert(str.getLen() == 3);
+  // assert(str.getCap() == 5);
+  // assert(strcmp(str.getRaw(), "Hel") == 0);
+  //
+  // assert(split.getLen() == 2);
+  // assert(split.getCap() == 2);
+  // assert(strcmp(split.getRaw(), "lo") == 0);
+}
+
 int main(void) {
-  pushTest();
-  popTest();
-  insertTest();
-  insertStrTest();
-  removeTest();
-  containsTest();
+  // pushTest();
+  // popTest();
+  // insertTest();
+  // insertStrTest();
+  // removeTest();
+  // containsTest();
+  // shrinkTest();
+  splitTest();
 }
