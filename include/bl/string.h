@@ -77,6 +77,27 @@ public:
   /// (`'\0'`) and throw an error.
   char       pop(void);
 
+  /// Inserts the given character at the specified index in the string.
+  ///
+  /// @note This is an **O(n)** operation since it requires copying every
+  /// character in the buffer.
+  void       insert(usize idx, char chr);
+
+  /// Inserts the given C-string at the specified index in the string.
+  ///
+  /// @note This is an **O(n)** operation since it requires copying every
+  /// character in the buffer.
+  void       insert(usize idx, const_cstr str);
+
+  /// Removes and returns the character at the specified index from the string.
+  char       remove(usize idx);
+
+  /// Checks if the string contains the specified sub-string.
+  bool       contains(const_cstr substr);
+
+  // TODO: Add insert, insertStr, remove, removeStr, shrinkToFit, split,
+  // contains, and compare functions
+
 private:
   /// Backing allocator used for internal allocations.
   mem::Allocator* allocator;

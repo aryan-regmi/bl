@@ -73,6 +73,7 @@ String::String(mem::Allocator* allocator, usize capacity) : cap(capacity) {
     cstr data = (cstr)allocator->allocRaw(capacity + 1);
     if (data == nullptr) {
       BL_THROW(errMsg(StringError::BufferAllocationFailed));
+      return;
     }
 
     this->data[capacity] = '\0';
@@ -204,6 +205,7 @@ void String::push(char chr) {
     this->resize();
     if (Error::isError()) {
       BL_THROW(errMsg(StringError::ResizeFailed));
+      return;
     }
   }
 
@@ -237,6 +239,95 @@ char String::pop(void) {
   this->len             -= 1;
   this->data[this->len]  = '\0';
   return popped;
+}
+
+void String::insert(usize idx, char chr) {
+  Error::resetError();
+
+  if (idx == this->len - 1) {
+    this->push(chr);
+    return;
+  }
+
+  // Copy second half of the string
+  const usize split_size = this->len - idx;
+  cstr        split      = (cstr)this->allocator->allocRaw(split_size + 1);
+  cstr        copied     = strncpy(split, this->data + idx, split_size);
+  if (copied == nullptr) {
+    BL_THROW(errMsg(StringError::StrncpyFailed));
+    return;
+  }
+  copied[split_size] = '\0';
+  split              = copied;
+
+  // Resize if necessary
+  usize new_len      = this->len + 1;
+  if (new_len > this->cap) {
+    this->resize();
+    if (Error::isError()) {
+      BL_THROW(errMsg(StringError::ResizeFailed));
+      return;
+    }
+  }
+
+  // Append `chr` then append the rest of the string
+  this->data[idx]   = chr;
+  cstr copied_split = strncpy(this->data + idx + 1, split, split_size);
+  if (copied_split == nullptr) {
+    BL_THROW(errMsg(StringError::StrncpyFailed));
+    return;
+  }
+  this->allocator->deallocRaw(split);
+  this->len             += 1;
+  this->data[this->len]  = '\0';
+}
+
+void String::insert(usize idx, const_cstr str) {
+  Error::resetError();
+
+  if (idx == this->len - 1) {
+    this->push(str);
+    return;
+  }
+
+  // Copy second half of the string
+  const usize split_size = this->len - idx;
+  cstr        split      = (cstr)this->allocator->allocRaw(split_size + 1);
+  cstr        copied     = strncpy(split, this->data + idx, split_size);
+  if (copied == nullptr) {
+    BL_THROW(errMsg(StringError::StrncpyFailed));
+    return;
+  }
+  copied[split_size] = '\0';
+  split              = copied;
+
+  // FIXME: The resize might not be enough (resize in a while loop)
+  //
+  // Resize if necessary
+  usize len          = strlen(str);
+  usize new_len      = this->len + len;
+  if (new_len > this->cap) {
+    this->resize();
+    if (Error::isError()) {
+      BL_THROW(errMsg(StringError::ResizeFailed));
+      return;
+    }
+  }
+
+  // Append `str` then append the rest of the string
+  cstr copied_str = strncpy(this->data + idx, str, len);
+  if (copied_str == nullptr) {
+    BL_THROW(errMsg(StringError::StrncpyFailed));
+    return;
+  }
+  cstr copied_split = strncpy(this->data + idx + len, split, split_size);
+  if (copied_split == nullptr) {
+    BL_THROW(errMsg(StringError::StrncpyFailed));
+    return;
+  }
+  this->allocator->deallocRaw(split);
+  this->len             += len;
+  this->data[this->len]  = '\0';
 }
 
 void String::resize(void) {
