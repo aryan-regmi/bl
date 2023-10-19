@@ -2,9 +2,8 @@
 #define BL_STRING_H
 
 #include "bl/mem/allocator.h" // Allocator
-#include "bl/mem/c_allocator.h"
-#include "bl/primitives.h"
-#include <algorithm>
+#include "bl/primitives.h"    // cstr, usize
+
 #include <cstring>
 
 namespace bl {
@@ -14,21 +13,13 @@ using namespace primitives;
 
 struct String {
 public:
-  String() {
-    mem::Allocator allocator = mem::CAllocator();
-    this->allocator          = &allocator;
-  }
+  /// Creates an empty string with the `mem::CAllocator` as its backing
+  /// allocator.
+  String();
 
-  String(mem::Allocator* allocator) : allocator(allocator) {}
+  String(mem::Allocator* allocator);
 
-  String(mem::Allocator* allocator, usize capacity)
-      : allocator(allocator), cap(capacity) {
-    if (capacity != 0) {
-      this->data =
-          (cstr)allocator->allocRaw(capacity + 1); // TODO: Handle error
-      this->data[capacity] = '\0';
-    }
-  }
+  String(mem::Allocator* allocator, usize capacity);
 
   String(const String&) = delete;
   String(String&&)      = default;
