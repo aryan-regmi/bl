@@ -33,14 +33,14 @@ public:
   /// @note This overload uses `mem::CAllocator` as its backing allocator.
   String(const_cstr str);
 
-  /// Deallocates memory used by the string.
-  ~String();
-
   /// Clones the string.
   ///
   /// @note The capacity of the cloned string will not be the same as the
   /// original string, but the length and contents will be the same.
   String(const String&);
+
+  /// Deallocates memory used by the string.
+  ~String();
 
   /// Returns the underyling string buffer.
   const_cstr getRaw(void) const;
@@ -104,11 +104,21 @@ public:
   ///
   /// The original string contains bytes in the range `[0, idx)`, and the
   /// returned string contains the bytes in the range `[idx, len)`.
-  String     splitOff(usize idx);
+  String     split(usize idx);
 
-  // TODO: Add split and compare funcs
-  //
-  // TODO: Operator overload for index operator
+  /// Checks if the two strings are the same.
+  ///
+  /// @note This only checks for the string contents; the capacity and allocator
+  /// of the strings may differ.
+  bool       isSame(String* other) const;
+
+  /// Checks if the two strings are the same.
+  ///
+  /// This overload check a raw C-string against the string.
+  bool       isSame(const_cstr other) const;
+
+  // Operator overload for index operator.
+  char       operator[](usize idx);
 
 private:
   /// Backing allocator used for internal allocations.

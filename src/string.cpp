@@ -48,7 +48,7 @@ mem::Allocator DEFAULT_C_ALLOCATOR = mem::CAllocator();
 const u8       RESIZE_FACTOR       = 2;
 } // namespace
 
-// TODO: Handle indicies that are out of bounds!
+// FIXME: Handle indicies that are out of bounds!
 
 String::String() { this->allocator = &DEFAULT_C_ALLOCATOR; }
 
@@ -432,7 +432,7 @@ void String::shrinkToFit(void) {
   }
 }
 
-String String::splitOff(usize idx) {
+String String::split(usize idx) {
   if (idx == 0) {
     String* split = this;
     this->clear();
@@ -443,26 +443,39 @@ String String::splitOff(usize idx) {
     return String(this->allocator);
   }
 
-  // TODO: Finish impl
-
   // Create new string with enough capacity to hold the split
-  // String split = String(&DEFAULT_C_ALLOCATOR, this->len - idx);
-  // usize split_size = this->len - idx;
-  // cstr  split_data = (cstr)this->allocator->allocRaw(split_size + 1);
-  // if (split_data == nullptr) {
-  //   BL_THROW(errMsg(StringError::BufferAllocationFailed));
-  //   return String();
-  // }
-  // split_data[split_size] = '\0';
-  // String split           = String();
-  // split.allocator        = this->allocator;
-  // split.cap              = split_size;
-  // split.len              = split_size;
-  // split.data             = split_data;
+  usize  split_size = this->len - idx;
+  String split      = String(this->allocator, split_size);
 
   // Copy from original into split
+  cstr   copied     = strncpy(split.data, this->data + idx, split_size);
+  if (copied == nullptr) {
+    BL_THROW(errMsg(StringError::StrncpyFailed));
+    return String();
+  }
+  copied[split_size] = '\0';
+  split.data         = copied;
+  split.len          = split_size;
 
-  // return split;
+  // Remove split contents from original string
+  this->data[idx]    = '\0';
+  this->len          = idx;
+
+  return split;
 }
+
+bool String::isSame(String* other) const {
+  if (this->len != other->len) {
+    return false;
+  }
+
+  return strncmp(this->data, other->data, this->len) == 0;
+}
+
+bool String::isSame(const_cstr other) const {
+  return strncmp(this->data, other, this->len) == 0;
+}
+
+char String::operator[](usize idx) { return this->data[idx]; }
 
 } // namespace bl
