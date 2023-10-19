@@ -90,13 +90,18 @@ public:
   void       insert(usize idx, const_cstr str);
 
   /// Removes and returns the character at the specified index from the string.
+  ///
+  /// @note This is an **O(n)** operation since it requires copying every
+  /// character in the buffer.
   char       remove(usize idx);
 
   /// Checks if the string contains the specified sub-string.
-  bool       contains(const_cstr substr);
+  ///
+  /// This will return the index where the sub-string was found, or `-1` if it
+  /// wasn't found.
+  i32        find(const_cstr substr);
 
-  // TODO: Add insert, insertStr, remove, removeStr, shrinkToFit, split,
-  // contains, and compare functions
+  // TODO: Add shrinkToFit, split, and compare funcs
 
 private:
   /// Backing allocator used for internal allocations.

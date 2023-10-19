@@ -5,7 +5,7 @@
 #include "bl/mem/c_allocator.h" // CAllocator
 #include "bl/primitives.h"      // const_cstr, cstr, usize, u8
 
-#include <cstring> // strncpy, strlen
+#include <cstring> // strncpy, strlen, memmove
 
 namespace bl {
 
@@ -42,6 +42,8 @@ mem::Allocator DEFAULT_C_ALLOCATOR = mem::CAllocator();
 
 const u8       RESIZE_FACTOR       = 2;
 } // namespace
+
+// TODO: Handle indicies that are out of bounds!
 
 String::String() { this->allocator = &DEFAULT_C_ALLOCATOR; }
 
@@ -283,7 +285,15 @@ void String::insert(usize idx, char chr) {
 }
 
 void String::insert(usize idx, const_cstr str) {
-  Error::resetError();
+  // Input validation
+  {
+    Error::resetError();
+
+    if (str == nullptr) {
+      BL_THROW(errMsg(StringError::InvalidCString));
+      return;
+    }
+  }
 
   if (idx == this->len - 1) {
     this->push(str);
@@ -330,6 +340,24 @@ void String::insert(usize idx, const_cstr str) {
   this->data[this->len]  = '\0';
 }
 
+char String::remove(usize idx) {
+  if (idx == this->len - 1) {
+    return this->pop();
+  }
+
+  char  removed   = this->data[idx];
+
+  usize move_size = this->len - idx;
+  cstr moved = (cstr)memmove(this->data + idx, this->data + idx + 1, move_size);
+  if (moved == nullptr) {
+    BL_THROW(errMsg(StringError::StrncpyFailed));
+    return '\0';
+  }
+  this->len -= 1;
+
+  return removed;
+}
+
 void String::resize(void) {
   // Create new buffer with increased capacity
   usize new_cap = this->cap * RESIZE_FACTOR;
@@ -357,6 +385,25 @@ void String::resize(void) {
 
   this->data = copied;
   this->cap  = new_cap;
+}
+
+i32 String::find(const_cstr substr) {
+  // Input validation
+  {
+    Error::resetError();
+
+    if (substr == nullptr) {
+      BL_THROW(errMsg(StringError::InvalidCString));
+      return -1;
+    }
+  }
+
+  cstr found = strstr(this->data, substr);
+  if (found == NULL) {
+    return -1;
+  }
+
+  return (i32)(found - this->data);
 }
 
 } // namespace bl

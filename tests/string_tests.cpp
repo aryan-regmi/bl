@@ -85,9 +85,47 @@ void insertStrTest(void) {
   assert(str.getCap() == 20);
 }
 
+void removeTest(void) {
+  String str = String("Hello");
+  Error::checkError();
+
+  char removed = str.remove(0);
+  Error::checkError();
+  assert(removed == 'H');
+  assert(strcmp(str.getRaw(), "ello") == 0);
+  assert(str.getLen() == 4);
+
+  removed = str.remove(3);
+  Error::checkError();
+  assert(removed == 'o');
+  assert(strcmp(str.getRaw(), "ell") == 0);
+  assert(str.getLen() == 3);
+
+  removed = str.remove(1);
+  Error::checkError();
+  assert(removed == 'l');
+  assert(strcmp(str.getRaw(), "el") == 0);
+  assert(str.getLen() == 2);
+}
+
+void containsTest(void) {
+  String str   = String("Hello");
+
+  i32    found = str.find("Hell");
+  assert(found == 0);
+
+  found = str.find("lo");
+  assert(found == 3);
+
+  found = str.find("Bye");
+  assert(found == -1);
+}
+
 int main(void) {
   pushTest();
   popTest();
   insertTest();
   insertStrTest();
+  removeTest();
+  containsTest();
 }
