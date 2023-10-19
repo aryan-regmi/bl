@@ -62,7 +62,20 @@ public:
   void       clear(void);
 
   /// Appends the given character to the end of the string.
+  ///
+  /// @note This can cause a resize if the string does not have enough capacity.
   void       push(char chr);
+
+  /// Appends the given C-string to the end of the string.
+  ///
+  /// @note This can cause a resize if the string does not have enough capacity.
+  void       push(const_cstr str);
+
+  /// Removes and returns the last character in the string.
+  ///
+  /// @note If the string is empty, this will return the null-terminator
+  /// (`'\0'`) and throw an error.
+  char       pop(void);
 
 private:
   /// Backing allocator used for internal allocations.

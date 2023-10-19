@@ -13,8 +13,33 @@ using namespace bl;
 void pushTest(void) {
   String str = String("Hello");
   Error::checkError();
-  str.push('!');
-  assert(strcmp(str.getRaw(), "Hello!") == 0);
+
+  str.push(' ');
+  Error::checkError();
+  assert(strcmp(str.getRaw(), "Hello ") == 0);
+  assert(str.getLen() == 6);
+  assert(str.getCap() == 10);
+
+  str.push("World!");
+  Error::checkError();
+  assert(strcmp(str.getRaw(), "Hello World!") == 0);
+  assert(str.getLen() == 12);
+  assert(str.getCap() == 20);
 }
 
-int main(void) { pushTest(); }
+void popTest(void) {
+  String str = String("Hello");
+  Error::checkError();
+
+  char popped = str.pop();
+  Error::checkError();
+
+  assert(strcmp(str.getRaw(), "Hell") == 0);
+  assert(popped == 'o');
+  assert(str.getLen() == 4);
+}
+
+int main(void) {
+  pushTest();
+  popTest();
+}

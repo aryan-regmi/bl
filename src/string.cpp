@@ -14,6 +14,7 @@ enum class StringError {
   InvalidAllocator,
   InvalidCString,
   BufferAllocationFailed,
+  BufferDeallocationFailed,
   StrncpyFailed,
   ResizeFailed,
 };
@@ -30,7 +31,11 @@ const_cstr errMsg(StringError err) {
     return "StringError: Unable to resize the string";
   case StringError::InvalidCString:
     return "StringError: Invalid C-string (the provided C-string was null)";
+  case StringError::BufferDeallocationFailed:
+    return "StringError: Unable to deallocate the string buffer";
   }
+
+  return nullptr;
 }
 
 mem::Allocator DEFAULT_C_ALLOCATOR = mem::CAllocator();
@@ -207,6 +212,33 @@ void String::push(char chr) {
   this->len             += 1;
 }
 
+void String::push(const_cstr str) {
+  // Input validation
+  {
+    Error::resetError();
+
+    if (str == nullptr) {
+      BL_THROW(errMsg(StringError::InvalidCString));
+      return;
+    }
+  }
+
+  usize len = strlen(str);
+  for (usize i = 0; i < len; i++) {
+    this->push(str[i]);
+    if (Error::isError()) {
+      return;
+    }
+  }
+}
+
+char String::pop(void) {
+  char popped            = this->data[this->len - 1];
+  this->len             -= 1;
+  this->data[this->len]  = '\0';
+  return popped;
+}
+
 void String::resize(void) {
   // Create new buffer with increased capacity
   usize new_cap = this->cap * RESIZE_FACTOR;
@@ -225,8 +257,15 @@ void String::resize(void) {
   }
   copied[this->len] = '\0';
 
-  this->data        = copied;
-  this->cap         = new_cap;
+  // Free old buffer
+  this->allocator->deallocRaw(this->data);
+  if (Error::isError()) {
+    BL_THROW(errMsg(StringError::BufferDeallocationFailed));
+    return;
+  }
+
+  this->data = copied;
+  this->cap  = new_cap;
 }
 
 } // namespace bl
