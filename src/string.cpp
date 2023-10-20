@@ -15,12 +15,14 @@ namespace {
 enum class StringError {
   InvalidAllocator,
   InvalidCString,
+  InvalidString,
   BufferAllocationFailed,
   BufferDeallocationFailed,
   BufferResizeFailed,
   StrncpyFailed,
   ResizeFailed,
   IndexOutOfBounds,
+  InvalidPop,
 };
 
 const_cstr errMsg(StringError err) {
@@ -35,12 +37,16 @@ const_cstr errMsg(StringError err) {
     return "StringError: Unable to resize the string";
   case StringError::InvalidCString:
     return "StringError: Invalid C-string (the provided C-string was null)";
+  case StringError::InvalidString:
+    return "StringError: Invalid string (the provided string was null)";
   case StringError::BufferDeallocationFailed:
     return "StringError: Unable to deallocate the string buffer";
   case StringError::BufferResizeFailed:
     return "StringError: Unable to resize for the string buffer";
   case StringError::IndexOutOfBounds:
     return "StringError: The specified index was out of the string's bounds";
+  case StringError::InvalidPop:
+    return "StringError: Tried `popping` from an empty string";
   }
 
   return nullptr;
@@ -251,6 +257,12 @@ void String::push(const_cstr str) {
 }
 
 char String::pop(void) {
+  Error::resetError();
+  if (this->len == 0) {
+    BL_THROW(errMsg(StringError::InvalidPop));
+    return '\0';
+  }
+
   char popped            = this->data[this->len - 1];
   this->len             -= 1;
   this->data[this->len]  = '\0';
@@ -394,35 +406,6 @@ char String::remove(usize idx) {
   return removed;
 }
 
-void String::resize(void) {
-  // Create new buffer with increased capacity
-  usize new_cap = this->cap * RESIZE_FACTOR;
-  cstr  new_buf = (cstr)this->allocator->allocRaw(new_cap + 1);
-  if (new_buf == nullptr) {
-    BL_THROW(errMsg(StringError::BufferAllocationFailed));
-    return;
-  }
-
-  // Copy original data to new buffer
-  cstr copied = strncpy(new_buf, this->data, this->len);
-  if (copied == nullptr) {
-    BL_THROW(errMsg(StringError::StrncpyFailed));
-    this->allocator->deallocRaw(new_buf);
-    return;
-  }
-  copied[this->len] = '\0';
-
-  // Free old buffer
-  this->allocator->deallocRaw(this->data);
-  if (Error::isError()) {
-    BL_THROW(errMsg(StringError::BufferDeallocationFailed));
-    return;
-  }
-
-  this->data = copied;
-  this->cap  = new_cap;
-}
-
 i32 String::find(const_cstr substr) const {
   // Input validation
   {
@@ -443,6 +426,7 @@ i32 String::find(const_cstr substr) const {
 }
 
 void String::shrinkToFit(void) {
+  Error::resetError();
   if (this->cap > this->len) {
     cstr resized = (cstr)this->allocator->resizeRaw(this->data, this->len + 1);
     if (resized == nullptr) {
@@ -497,6 +481,14 @@ String String::split(usize idx) {
 }
 
 bool String::isSame(String* other) const {
+  // Input validation
+  {
+    Error::resetError();
+    if (other == nullptr) {
+      BL_THROW(errMsg(StringError::InvalidString));
+    }
+  }
+
   if (this->len != other->len) {
     return false;
   }
@@ -505,6 +497,14 @@ bool String::isSame(String* other) const {
 }
 
 bool String::isSame(const_cstr other) const {
+  // Input validation
+  {
+    Error::resetError();
+    if (other == nullptr) {
+      BL_THROW(errMsg(StringError::InvalidCString));
+    }
+  }
+
   return strncmp(this->data, other, this->len) == 0;
 }
 
@@ -519,6 +519,35 @@ char String::operator[](usize idx) {
   }
 
   return this->data[idx];
+}
+
+void String::resize(void) {
+  // Create new buffer with increased capacity
+  usize new_cap = this->cap * RESIZE_FACTOR;
+  cstr  new_buf = (cstr)this->allocator->allocRaw(new_cap + 1);
+  if (new_buf == nullptr) {
+    BL_THROW(errMsg(StringError::BufferAllocationFailed));
+    return;
+  }
+
+  // Copy original data to new buffer
+  cstr copied = strncpy(new_buf, this->data, this->len);
+  if (copied == nullptr) {
+    BL_THROW(errMsg(StringError::StrncpyFailed));
+    this->allocator->deallocRaw(new_buf);
+    return;
+  }
+  copied[this->len] = '\0';
+
+  // Free old buffer
+  this->allocator->deallocRaw(this->data);
+  if (Error::isError()) {
+    BL_THROW(errMsg(StringError::BufferDeallocationFailed));
+    return;
+  }
+
+  this->data = copied;
+  this->cap  = new_cap;
 }
 
 } // namespace bl

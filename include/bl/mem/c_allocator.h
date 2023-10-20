@@ -7,6 +7,8 @@
 
 namespace bl::mem {
 
+/// An allocator backed by `libc`'s allocation functions (malloc, free,
+/// realloc).
 struct CAllocator : Allocator {
 public:
   CAllocator() {
