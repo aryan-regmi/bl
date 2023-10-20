@@ -69,6 +69,14 @@ public:
   /// Deallocates memory used by the string.
   ~String();
 
+  String&    operator=(const String&) = default;
+
+  /// Operator overload for index operator.
+  ///
+  /// ## Error
+  /// - Throws an error if the index is out of the string's bounds.
+  char&      operator[](usize idx);
+
   /// Returns the underyling string buffer.
   const_cstr getRaw(void) const;
 
@@ -186,12 +194,6 @@ public:
   /// ## Error
   /// - Throws an error if the `other` C-string is null.
   bool       isSame(const_cstr other) const;
-
-  /// Operator overload for index operator.
-  ///
-  /// ## Error
-  /// - Throws an error if the index is out of the string's bounds.
-  char       operator[](usize idx);
 
 private:
   /// Backing allocator used for internal allocations.

@@ -5,9 +5,10 @@
 #include "bl/mem/c_allocator.h" // CAllocator
 #include "bl/primitives.h"      // const_cstr, cstr, usize, u8
 
-#include <algorithm>
-#include <cstdio>
+#include <cstdlib> // abort
 #include <cstring> // strncpy, strlen, memmove
+
+// TODO: Replace raw casts with static_casts
 
 namespace bl {
 
@@ -218,6 +219,7 @@ void       String::clear(void) {
   }
 }
 
+// FIXME: Allocate on first push!
 void String::push(char chr) {
   Error::resetError();
 
@@ -236,6 +238,7 @@ void String::push(char chr) {
   this->len             += 1;
 }
 
+// FIXME: Allocate on first push!
 void String::push(const_cstr str) {
   // Input validation
   {
@@ -508,13 +511,14 @@ bool String::isSame(const_cstr other) const {
   return strncmp(this->data, other, this->len) == 0;
 }
 
-char String::operator[](usize idx) {
+char& String::operator[](usize idx) {
   // Input validation
   {
     Error::resetError();
     if (idx > this->len - 1) {
       BL_THROW(errMsg(StringError::IndexOutOfBounds));
-      return '\0';
+      Error::printErrorTrace();
+      abort();
     }
   }
 

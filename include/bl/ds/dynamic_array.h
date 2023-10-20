@@ -1,37 +1,353 @@
 #ifndef BL_DYNAMIC_ARRAY_H
 #define BL_DYNAMIC_ARRAY_H
 
-#include "bl/mem/allocator.h"
-#include "bl/primitives.h" // usize
+#include "bl/error.h"           // resetError, BL_THROW
+#include "bl/mem/allocator.h"   // Allocator
+#include "bl/mem/c_allocator.h" // CAllocator
+#include "bl/primitives.h"      // const_cstr, usize, u8
+
+#include <cstdio>
+#include <cstdlib> // abort
+#include <cstring> // memcpy
+#include <initializer_list>
+#include <type_traits>
 
 namespace bl::ds {
 using namespace primitives;
 
+// TODO: Add error section on doc comments (see String)
+//
+// TODO: Replace raw casts with static_casts
+
+namespace dynamic_array_internal {
+enum class DynamicArrayError {
+  InvalidAllocator,
+  InvalidArray,
+  BufferAllocationFailed,
+  BufferDeallocationFailed,
+  BufferResizeFailed,
+  MemcpyFailed,
+  ResizeFailed,
+  IndexOutOfBounds,
+  InvalidPop,
+};
+
+const_cstr            errMsg(DynamicArrayError err);
+extern mem::Allocator DEFAULT_C_ALLOCATOR;
+extern const u8       RESIZE_FACTOR;
+} // namespace dynamic_array_internal
+
 template <typename T> struct DynamicArray {
 public:
-  DynamicArray();
+  /// Creates an empty dynamic array with `mem::CAllocator` as its backing
+  /// allocator.
+  ///
+  /// ## Note
+  /// Nothing is allocated until the first push.
+  DynamicArray() {
+    this->allocator = &dynamic_array_internal::DEFAULT_C_ALLOCATOR;
+  }
 
-  DynamicArray(mem::Allocator* allocator);
+  /// Creates an empty dynamic array backed by the given allocator.
+  ///
+  /// ## Note
+  /// Nothing is allocated until the first push.
+  DynamicArray(mem::Allocator* allocator) {
+    // Input validation
+    {
+      Error::resetError();
 
-  DynamicArray(mem::Allocator* allocator, usize capacity);
+      if (allocator == nullptr) {
+        BL_THROW(dynamic_array_internal::errMsg(
+            dynamic_array_internal::DynamicArrayError::InvalidAllocator));
+        return;
+      }
+    }
 
-  // Disable copy-constructor
-  DynamicArray(const DynamicArray&) = delete;
-  DynamicArray(DynamicArray&&)      = default;
+    this->allocator = allocator;
+  }
 
-  T*    getRaw(void) const;
+  /// Creates an empty dynamic array with the specified capacity, backed by the
+  /// given allocator.
+  ///
+  /// ## Note
+  /// If the capacity is `0`, then this just calls the
+  /// `DynamicArray(mem::Allocator*)` constructor (nothing gets allocated).
+  DynamicArray(mem::Allocator* allocator, usize capacity) {
+    // Input validation
+    {
+      Error::resetError();
 
-  usize getLen(void) const;
+      if (allocator == nullptr) {
+        BL_THROW(dynamic_array_internal::errMsg(
+            dynamic_array_internal::DynamicArrayError::InvalidAllocator));
+        return;
+      }
+    }
 
-  usize getCap(void) const;
+    if (capacity != 0) {
+      T* data = (T*)allocator->allocRaw(capacity * sizeof(T));
+      if (data == nullptr) {
+        BL_THROW(dynamic_array_internal::errMsg(
+            dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
+        return;
+      }
+      this->data = data;
+      this->cap  = capacity;
+    }
+  }
 
-  bool  isEmpty(void) const;
+  /// Creates an empty dynamic array with the specified capacity, backed by the
+  /// `mem::CAllocator`.
+  ///
+  /// ## Note
+  /// If the capacity is `0`, then this just calls the
+  /// `DynamicArray(mem::Allocator*)` constructor (nothing gets allocated).
+  DynamicArray(usize capacity) {
+    Error::resetError();
+
+    this->allocator = &dynamic_array_internal::DEFAULT_C_ALLOCATOR;
+
+    if (capacity != 0) {
+      T* data = (T*)this->allocator->allocRaw(capacity * sizeof(T));
+      if (data == nullptr) {
+        BL_THROW(dynamic_array_internal::errMsg(
+            dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
+        return;
+      }
+      this->data = data;
+      this->cap  = capacity;
+    }
+  }
+
+  /// Creates a dynamic array backed by the given allocator with data from the
+  /// initializer list.
+  DynamicArray<T>(mem::Allocator* allocator, std::initializer_list<T> list) {
+    // Input validation
+    {
+      Error::resetError();
+
+      if (allocator == nullptr) {
+        BL_THROW(dynamic_array_internal::errMsg(
+            dynamic_array_internal::DynamicArrayError::InvalidAllocator));
+        return;
+      }
+    }
+
+    this->allocator       = allocator;
+
+    // Allocate buffer for dynamic array
+    const usize list_size = list.size();
+    T*          data = (T*)this->allocator->allocRaw(sizeof(T) * list_size);
+    if (data == nullptr) {
+      BL_THROW(dynamic_array_internal::errMsg(
+          dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
+      return;
+    }
+
+    // Copy data from given array
+    usize idx = 0;
+    for (auto& val : list) {
+      data[idx] = val;
+      ++idx;
+    }
+
+    this->data = data;
+    this->len  = list_size;
+    this->cap  = list_size;
+  }
+
+  /// Creates a dynamic array backed by the `mem::CAllocator` with data from the
+  /// initializer list.
+  DynamicArray<T>(std::initializer_list<T> list) {
+    // Input validation
+    Error::resetError();
+
+    this->allocator       = &dynamic_array_internal::DEFAULT_C_ALLOCATOR;
+
+    // Allocate buffer for dynamic array
+    const usize list_size = list.size();
+    T*          data = (T*)this->allocator->allocRaw(sizeof(T) * list_size);
+    if (data == nullptr) {
+      BL_THROW(dynamic_array_internal::errMsg(
+          dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
+      return;
+    }
+
+    // Copy data from given array
+    usize idx = 0;
+    for (auto& val : list) {
+      data[idx] = val;
+      ++idx;
+    }
+
+    this->data = data;
+    this->len  = list_size;
+    this->cap  = list_size;
+  }
+
+  /// Clones the dynamic array.
+  ///
+  /// ## Note
+  /// The capacity of the cloned array will not be the same as the orininal's,
+  /// but the length and elements will be the same.
+  DynamicArray(const DynamicArray& other) {
+    Error::resetError();
+
+    this->allocator = other.allocator;
+    this->len       = other.len;
+    this->cap       = other.len;
+
+    T* data         = (T*)this->allocator->allocRaw(this->len * sizeof(T));
+    if (data == nullptr) {
+      BL_THROW(dynamic_array_internal::errMsg(
+          dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
+      return;
+    }
+    this->data = data;
+
+    T* copied  = memcpy(this->data, other.data, this->len * sizeof(T));
+    if (copied == nullptr) {
+      BL_THROW(dynamic_array_internal::errMsg(
+          dynamic_array_internal::DynamicArrayError::MemcpyFailed));
+      return;
+    }
+    this->data = copied;
+  }
+
+  /// Deallocates memory used by the array.
+  ~DynamicArray() {
+    if (this->cap != 0) {
+      this->allocator->deallocRaw(this->data);
+    }
+  }
+
+  DynamicArray& operator=(const DynamicArray&) = default;
+
+  /// Operator overload for index operator.
+  ///
+  /// ## Error
+  /// - Throws an error if the index is out of the array's bounds.
+  T&            operator[](usize idx) {
+    // Input validation
+    {
+      Error::resetError();
+      if (idx > this->len - 1) {
+        BL_THROW(dynamic_array_internal::errMsg(
+            dynamic_array_internal::DynamicArrayError::IndexOutOfBounds));
+        Error::printErrorTrace();
+        abort();
+      }
+    }
+
+    return this->data[idx];
+  }
+
+  /// Returns the underlying element buffer.
+  const T* getRaw(void) const { return this->data; }
+
+  /// Returns the length of the array.
+  usize    getLen(void) const { return this->len; }
+
+  /// Returns the capacity of the array.
+  usize    getCap(void) const { return this->cap; }
+
+  /// Checks if the array is empty.
+  bool     isEmpty(void) const { return this->len == 0; }
+
+  /// Removes all of the array's contents, but leaves the capacity unchanged.
+  void     clear(void) {
+    // TODO: Call destructor for elements?
+    this->len = 0;
+  }
+
+  /// Appends the given value to the end of the array.
+  void push(T val) {
+    Error::resetError();
+
+    // Allocate on first push
+    if (this->cap == 0) {
+      T* data = (T*)this->allocator->allocRaw(sizeof(T));
+      if (data == nullptr) {
+        BL_THROW(dynamic_array_internal::errMsg(
+            dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
+        return;
+      }
+      this->data = data;
+      this->cap  = 1;
+    }
+
+    // Resize if necessary
+    usize new_len = this->len + 1;
+    if (new_len > this->cap) {
+      this->resize();
+      if (Error::isError()) {
+        BL_THROW(dynamic_array_internal::errMsg(
+            dynamic_array_internal::DynamicArrayError::ResizeFailed));
+        return;
+      }
+    }
+
+    this->data[this->len]  = val;
+    this->len             += 1;
+  }
+
+  /// Removes and returns the last element in the array.
+  T pop(void) {
+    Error::resetError();
+
+    if (this->len == 0) {
+      BL_THROW(dynamic_array_internal::errMsg(
+          dynamic_array_internal::DynamicArrayError::InvalidPop));
+      return T();
+    }
+
+    T popped   = this->data[this->len - 1];
+    this->len -= 1;
+    return popped;
+  }
 
 private:
+  /// Backing allocator used for internal allocations.
   mem::Allocator* allocator;
-  T*              data;
-  usize           len;
-  usize           cap;
+
+  /// The actual element buffer.
+  T*              data = nullptr;
+
+  /// The length of the array.
+  usize           len  = 0;
+
+  /// The capacity of the array.
+  usize           cap  = 0;
+
+  /// Function to resize the array.
+  void            resize(void) {
+    // Create new buffer with increased capacity
+    usize new_cap = this->cap * dynamic_array_internal::RESIZE_FACTOR;
+    T*    new_buf = (T*)this->allocator->allocRaw(new_cap * sizeof(T));
+    if (new_buf == nullptr) {
+      BL_THROW(dynamic_array_internal::errMsg(
+          dynamic_array_internal::DynamicArrayError::BufferResizeFailed));
+      return;
+    }
+
+    // Copy original data to new buffer
+    for (usize i = 0; i < this->len; i++) {
+      new_buf[i] = this->data[i];
+    }
+
+    // Free old buffer
+    this->allocator->deallocRaw(this->data);
+    if (Error::isError()) {
+      BL_THROW(dynamic_array_internal::errMsg(
+          dynamic_array_internal::DynamicArrayError::BufferDeallocationFailed));
+      this->allocator->deallocRaw(new_buf);
+      return;
+    }
+
+    this->data = new_buf;
+    this->cap  = new_cap;
+  }
 };
 
 } // namespace bl::ds

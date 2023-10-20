@@ -11,6 +11,8 @@ typedef void* (*AllocFn)(usize);
 typedef void (*DeallocFn)(void*);
 typedef void* (*ResizeFn)(void*, usize);
 
+// TODO: Add type-safe versions of functions? (Replace all `raw` calls by those)
+
 /// An interface for allocators.
 struct Allocator {
 public:
