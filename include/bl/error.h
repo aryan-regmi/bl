@@ -14,13 +14,13 @@ public:
 
   /// Checks if an error occured.
   ///
-  /// # Note
+  /// ## Note
   /// Use `Error::getErrorMsg` to get the error that occured.
   static bool       isError(void);
 
   /// Gets the error message for the current/latest error.
   ///
-  /// # Note
+  /// ## Note
   /// This should be used in conjuction with `Error::isError`; it will return
   /// `nullptr` if `Error::isError` returns false.
   static const_cstr getErrorMsg(void);

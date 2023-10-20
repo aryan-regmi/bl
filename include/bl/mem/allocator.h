@@ -27,7 +27,7 @@ public:
   }
 
 protected:
-  /// Allocator specific context (useful for non-global allocators).
+  /// %Allocator specific context (useful for non-global allocators).
   void*     ctx;
 
   /// Function used to make allocations.

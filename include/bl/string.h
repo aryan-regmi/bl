@@ -13,27 +13,27 @@ public:
   /// Creates an empty string with the `mem::CAllocator` as its backing
   /// allocator.
   ///
-  /// # Note
+  /// ## Note
   /// Nothing is allocated until the first push.
   String();
 
   /// Creates an empty string backed by the given allocator.
   ///
-  /// # Note
+  /// ## Note
   /// Nothing is allocated until the first push.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the provided allocator is null.
   String(mem::Allocator* allocator);
 
   /// Creates an empty string with the specified capacity, backed by the given
   /// allocator.
   ///
-  /// # Note
+  /// ## Note
   /// If the capacity is `0`, then this just calls the `String(mem::Allocator*)`
   /// constructor (nothing gets allocated).
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the provided allocator is null.
   /// - Throws an error if allocator is unable to allocate space for the buffer.
   String(mem::Allocator* allocator, usize capacity);
@@ -41,28 +41,28 @@ public:
   /// Creates a string containing the given C-string, with the given allocator
   /// as its backing allocator.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the provided allocator or the C-string is null.
   /// - Throws an error if allocator is unable to allocate space for the buffer.
   String(mem::Allocator* allocator, const_cstr str);
 
   /// Creates a string containing the given C-string.
   ///
-  /// # Note
+  /// ## Note
   /// This overload uses `mem::CAllocator` as its backing allocator.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the C-string is null.
   /// - Throws an error if allocator is unable to allocate space for the buffer.
   String(const_cstr str);
 
   /// Clones the string.
   ///
-  /// # Note
+  /// ## Note
   /// The capacity of the cloned string will not be the same as the
   /// original string, but the length and contents will be the same.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if allocator is unable to allocate space for the buffer.
   String(const String&);
 
@@ -86,50 +86,50 @@ public:
 
   /// Appends the given character to the end of the string.
   ///
-  /// # Note
+  /// ## Note
   /// This can cause a resize if the string does not have enough capacity.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the string failed to resize.
   void       push(char chr);
 
   /// Appends the given C-string to the end of the string.
   ///
-  /// # Note
+  /// ## Note
   /// This can cause a resize if the string does not have enough capacity.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the provided C-string is null.
   /// - Throws an error if the string failed to resize.
   void       push(const_cstr str);
 
   /// Removes and returns the last character in the string.
   ///
-  /// # Note
+  /// ## Note
   /// If the string is empty, this will return the null-terminator (`'\0'`)/
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the string is empty.
   char       pop(void);
 
   /// Inserts the given character at the specified index in the string.
   ///
-  /// # Note
+  /// ## Note
   /// This is an **O(n)** operation since it requires copying every character in
   /// the buffer.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the index is out of the string's bounds.
   /// - Throws an error if the string failed to resize.
   void       insert(usize idx, char chr);
 
   /// Inserts the given C-string at the specified index in the string.
   ///
-  /// #Note
+  /// ##Note
   /// This is an **O(n)** operation since it requires copying every character in
   /// the buffer.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the provided C-string is null.
   /// - Throws an error if the index is out of the string's bounds.
   /// - Throws an error if the string failed to resize.
@@ -137,11 +137,11 @@ public:
 
   /// Removes and returns the character at the specified index from the string.
   ///
-  /// #Note
+  /// ##Note
   /// This is an **O(n)** operation since it requires copying every character in
   /// the buffer.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the index is out of the string's bounds.
   char       remove(usize idx);
 
@@ -150,13 +150,13 @@ public:
   /// This will return the index where the sub-string was found, or `-1` if it
   /// wasn't found.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the sub-string is null.
   i32        find(const_cstr substr) const;
 
   /// Shrinks the capacity of the string to match its length.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the string failed to resize.
   void       shrinkToFit(void);
 
@@ -165,17 +165,17 @@ public:
   /// The original string contains bytes in the range `[0, idx)`, and the
   /// returned string contains the bytes in the range `[idx, len)`.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the index is out of the string's bounds.
   String     split(usize idx);
 
   /// Checks if the two strings are the same.
   ///
-  /// # Note
+  /// ## Note
   /// This only checks for the string contents; the capacity and allocator of
   /// the strings may differ.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the `other` string is null.
   bool       isSame(String* other) const;
 
@@ -183,13 +183,13 @@ public:
   ///
   /// This overload check a raw C-string against the string.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the `other` C-string is null.
   bool       isSame(const_cstr other) const;
 
   /// Operator overload for index operator.
   ///
-  /// # Error
+  /// ## Error
   /// - Throws an error if the index is out of the string's bounds.
   char       operator[](usize idx);
 
