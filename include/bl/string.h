@@ -7,6 +7,12 @@
 namespace bl {
 using namespace primitives;
 
+// TODO: Document funcs that can throw error
+//
+// TODO: Document exact size of allocations made
+//
+// TODO: Document the `String` struct itself
+
 struct String {
 public:
   /// Creates an empty string with the `mem::CAllocator` as its backing

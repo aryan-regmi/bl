@@ -20,6 +20,7 @@ enum class StringError {
   BufferResizeFailed,
   StrncpyFailed,
   ResizeFailed,
+  IndexOutOfBounds,
 };
 
 const_cstr errMsg(StringError err) {
@@ -38,6 +39,8 @@ const_cstr errMsg(StringError err) {
     return "StringError: Unable to deallocate the string buffer";
   case StringError::BufferResizeFailed:
     return "StringError: Unable to resize for the string buffer";
+  case StringError::IndexOutOfBounds:
+    return "StringError: The specified index was out of the string's bounds";
   }
 
   return nullptr;
@@ -47,8 +50,6 @@ mem::Allocator DEFAULT_C_ALLOCATOR = mem::CAllocator();
 
 const u8       RESIZE_FACTOR       = 2;
 } // namespace
-
-// FIXME: Handle indicies that are out of bounds!
 
 String::String() { this->allocator = &DEFAULT_C_ALLOCATOR; }
 
@@ -257,7 +258,15 @@ char String::pop(void) {
 }
 
 void String::insert(usize idx, char chr) {
-  Error::resetError();
+  // Input validation
+  {
+    Error::resetError();
+
+    if (idx > this->len - 1) {
+      BL_THROW(errMsg(StringError::IndexOutOfBounds));
+      return;
+    }
+  }
 
   if (idx == this->len - 1) {
     this->push(chr);
@@ -304,6 +313,11 @@ void String::insert(usize idx, const_cstr str) {
 
     if (str == nullptr) {
       BL_THROW(errMsg(StringError::InvalidCString));
+      return;
+    }
+
+    if (idx > this->len - 1) {
+      BL_THROW(errMsg(StringError::IndexOutOfBounds));
       return;
     }
   }
@@ -354,6 +368,15 @@ void String::insert(usize idx, const_cstr str) {
 }
 
 char String::remove(usize idx) {
+  // Input validation
+  {
+    Error::resetError();
+    if (idx > this->len - 1) {
+      BL_THROW(errMsg(StringError::IndexOutOfBounds));
+      return '\0';
+    }
+  }
+
   if (idx == this->len - 1) {
     return this->pop();
   }
@@ -433,6 +456,15 @@ void String::shrinkToFit(void) {
 }
 
 String String::split(usize idx) {
+  // Input validation
+  {
+    Error::resetError();
+    if (idx > this->len - 1) {
+      BL_THROW(errMsg(StringError::IndexOutOfBounds));
+      return String();
+    }
+  }
+
   if (idx == 0) {
     String* split = this;
     this->clear();
@@ -476,6 +508,17 @@ bool String::isSame(const_cstr other) const {
   return strncmp(this->data, other, this->len) == 0;
 }
 
-char String::operator[](usize idx) { return this->data[idx]; }
+char String::operator[](usize idx) {
+  // Input validation
+  {
+    Error::resetError();
+    if (idx > this->len - 1) {
+      BL_THROW(errMsg(StringError::IndexOutOfBounds));
+      return '\0';
+    }
+  }
+
+  return this->data[idx];
+}
 
 } // namespace bl
