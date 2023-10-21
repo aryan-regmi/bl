@@ -79,9 +79,53 @@ void clearTest(void) {
   assert(arr.getCap() == 2);
 }
 
+void insertTest(void) {
+  DynamicArray arr = DynamicArray<int>({1, 2, 3});
+  Error::checkError();
+
+  arr.insert(1, 4);
+  Error::checkError();
+  assert(arr.getLen() == 4);
+  assert(arr.getCap() == 6);
+  assert(arr[0] == 1);
+  assert(arr[1] == 4);
+  assert(arr[2] == 2);
+  assert(arr[3] == 3);
+
+  arr.insert(3, 4);
+  Error::checkError();
+  assert(arr.getLen() == 5);
+  assert(arr.getCap() == 6);
+  assert(arr[0] == 1);
+  assert(arr[1] == 4);
+  assert(arr[2] == 2);
+  assert(arr[3] == 3);
+  assert(arr[4] == 4);
+}
+
+void removeTest(void) {
+  DynamicArray arr = DynamicArray<int>({1, 2, 3});
+  Error::checkError();
+
+  int removed = arr.remove(0);
+  assert(removed == 1);
+  assert(arr.getLen() == 2);
+  assert(arr.getCap() == 3);
+  assert(arr[0] == 2);
+  assert(arr[1] == 3);
+
+  removed = arr.remove(1);
+  assert(removed == 3);
+  assert(arr.getLen() == 1);
+  assert(arr.getCap() == 3);
+  assert(arr[0] == 2);
+}
+
 int main(void) {
   pushTest();
   popTest();
   indexTest();
   clearTest();
+  insertTest();
+  removeTest();
 }

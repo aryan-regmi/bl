@@ -307,6 +307,82 @@ public:
     return popped;
   }
 
+  /// Inserts the given value at the specified index, shifting all elements
+  /// after it to the right.
+  ///
+  /// ## Note
+  /// This is **O(n)** in the worst case due to the shifting of elements.
+  void insert(usize idx, T val) {
+    // Input validation
+    {
+      Error::resetError();
+      if (idx > this->len - 1) {
+        BL_THROW(dynamic_array_internal::errMsg(
+            dynamic_array_internal::DynamicArrayError::IndexOutOfBounds));
+        return;
+      }
+    }
+
+    // Just call `push` if index is the last element
+    if (idx == this->len - 1) {
+      this->push(val);
+      return;
+    }
+
+    // Resize original buffer if necessary
+    if (this->len + 1 > this->cap) {
+      this->resize();
+      if (Error::isError()) {
+        BL_THROW(dynamic_array_internal::errMsg(
+            dynamic_array_internal::DynamicArrayError::ResizeFailed));
+        return;
+      }
+    }
+
+    // Shift all elements after `idx` to the right
+    for (usize i = this->len; i > idx; i--) {
+      this->data[i] = this->data[i - 1];
+    }
+
+    // Insert value to specified index
+    this->data[idx]  = val;
+    this->len       += 1;
+  }
+
+  /// Removes and returns the element at the specified index, shifting all
+  /// elements after it to the left.
+  ///
+  /// ## Note
+  /// This is **O(n)** in the worst case due to the shifting of elements; if the
+  /// order does not need to be preserved, then `DynamicArray::swapRemove`
+  /// should be used instead.
+  T remove(usize idx) {
+    // Input validation
+    {
+      Error::resetError();
+      if (idx > this->len - 1) {
+        BL_THROW(dynamic_array_internal::errMsg(
+            dynamic_array_internal::DynamicArrayError::IndexOutOfBounds));
+        abort();
+      }
+    }
+
+    // Just call `pop` if index is the last element
+    if (idx == this->len - 1) {
+      return this->pop();
+    }
+
+    T removed = this->data[idx];
+
+    // Shift all elements after `idx` to the left
+    for (usize i = idx; i < this->len - 1; i++) {
+      this->data[i] = this->data[i + 1];
+    }
+    this->len -= 1;
+
+    return removed;
+  }
+
 private:
   /// Backing allocator used for internal allocations.
   mem::Allocator* allocator;
@@ -322,30 +398,18 @@ private:
 
   /// Function to resize the array.
   void            resize(void) {
-    // Create new buffer with increased capacity
+    // Resize the buffer to new capacity
     usize new_cap = this->cap * dynamic_array_internal::RESIZE_FACTOR;
-    T*    new_buf = (T*)this->allocator->allocRaw(new_cap * sizeof(T));
-    if (new_buf == nullptr) {
+    T*    resized =
+        (T*)this->allocator->resizeRaw(this->data, new_cap * sizeof(T));
+    if (resized == nullptr) {
       BL_THROW(dynamic_array_internal::errMsg(
           dynamic_array_internal::DynamicArrayError::BufferResizeFailed));
       return;
     }
 
-    // Copy original data to new buffer
-    for (usize i = 0; i < this->len; i++) {
-      new_buf[i] = this->data[i];
-    }
-
-    // Free old buffer
-    this->allocator->deallocRaw(this->data);
-    if (Error::isError()) {
-      BL_THROW(dynamic_array_internal::errMsg(
-          dynamic_array_internal::DynamicArrayError::BufferDeallocationFailed));
-      this->allocator->deallocRaw(new_buf);
-      return;
-    }
-
-    this->data = new_buf;
+    // Set the buffer to the resized one
+    this->data = resized;
     this->cap  = new_cap;
   }
 };
