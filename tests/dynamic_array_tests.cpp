@@ -108,6 +108,7 @@ void removeTest(void) {
   Error::checkError();
 
   int removed = arr.remove(0);
+  Error::checkError();
   assert(removed == 1);
   assert(arr.getLen() == 2);
   assert(arr.getCap() == 3);
@@ -115,10 +116,31 @@ void removeTest(void) {
   assert(arr[1] == 3);
 
   removed = arr.remove(1);
+  Error::checkError();
   assert(removed == 3);
   assert(arr.getLen() == 1);
   assert(arr.getCap() == 3);
   assert(arr[0] == 2);
+}
+
+void swapRemoveTest(void) {
+  DynamicArray arr = DynamicArray<int>({1, 2, 3});
+  Error::checkError();
+
+  int removed = arr.swapRemove(0);
+  Error::checkError();
+  assert(removed == 1);
+  assert(arr.getLen() == 2);
+  assert(arr.getCap() == 3);
+  assert(arr[0] == 3);
+  assert(arr[1] == 2);
+
+  removed = arr.remove(1);
+  Error::checkError();
+  assert(removed == 2);
+  assert(arr.getLen() == 1);
+  assert(arr.getCap() == 3);
+  assert(arr[0] == 3);
 }
 
 int main(void) {
@@ -128,4 +150,5 @@ int main(void) {
   clearTest();
   insertTest();
   removeTest();
+  swapRemoveTest();
 }

@@ -307,6 +307,9 @@ public:
     return popped;
   }
 
+  // TODO: Update `String`'s `insert` and `remove` functions to shift like these
+  // instead of extra allocations
+
   /// Inserts the given value at the specified index, shifting all elements
   /// after it to the right.
   ///
@@ -379,6 +382,38 @@ public:
       this->data[i] = this->data[i + 1];
     }
     this->len -= 1;
+
+    return removed;
+  }
+
+  /// Removes and returns the element at the specified index.
+  ///
+  /// The removed element is replaced by the last element of the array.
+  ///
+  /// ## Note
+  /// This does not preserve ordering, but is **O(1)**; if order needs to be
+  /// preserved, use `DynamicArray::remove` instead;
+  T swapRemove(usize idx) {
+    // Input validation
+    {
+      Error::resetError();
+      if (idx > this->len - 1) {
+        BL_THROW(dynamic_array_internal::errMsg(
+            dynamic_array_internal::DynamicArrayError::IndexOutOfBounds));
+        abort();
+      }
+    }
+
+    // Just call `pop` if index is the last element
+    if (idx == this->len - 1) {
+      return this->pop();
+    }
+
+    T removed        = this->data[idx];
+
+    // Replace the indexc
+    this->data[idx]  = this->data[this->len - 1];
+    this->len       -= 1;
 
     return removed;
   }
