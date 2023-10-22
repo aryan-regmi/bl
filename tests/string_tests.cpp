@@ -12,16 +12,16 @@ using namespace bl;
 
 void pushTest(void) {
   String str = String("Hello");
-  Error::checkError();
+  Panic::checkError();
 
   str.push(' ');
-  Error::checkError();
+  Panic::checkError();
   assert(str.isSame("Hello "));
   assert(str.getLen() == 6);
   assert(str.getCap() == 10);
 
   str.push("World!");
-  Error::checkError();
+  Panic::checkError();
   assert(str.isSame("Hello World!"));
   assert(str.getLen() == 12);
   assert(str.getCap() == 20);
@@ -29,10 +29,10 @@ void pushTest(void) {
 
 void popTest(void) {
   String str = String("Hello");
-  Error::checkError();
+  Panic::checkError();
 
   char popped = str.pop();
-  Error::checkError();
+  Panic::checkError();
 
   assert(str.isSame("Hell"));
   assert(popped == 'o');
@@ -41,22 +41,22 @@ void popTest(void) {
 
 void insertTest(void) {
   String str = String("Hello");
-  Error::checkError();
+  Panic::checkError();
 
   str.insert(0, 'O');
-  Error::checkError();
+  Panic::checkError();
   assert(str.isSame("OHello"));
   assert(str.getLen() == 6);
   assert(str.getCap() == 10);
 
   str.insert(5, '!');
-  Error::checkError();
+  Panic::checkError();
   assert(str.isSame("OHello!"));
   assert(str.getLen() == 7);
   assert(str.getCap() == 10);
 
   str.insert(1, 'y');
-  Error::checkError();
+  Panic::checkError();
   assert(str.isSame("OyHello!"));
   assert(str.getLen() == 8);
   assert(str.getCap() == 10);
@@ -64,22 +64,22 @@ void insertTest(void) {
 
 void insertStrTest(void) {
   String str = String("Hello");
-  Error::checkError();
+  Panic::checkError();
 
   str.insert(0, "Oy ");
-  Error::checkError();
+  Panic::checkError();
   assert(str.isSame("Oy Hello"));
   assert(str.getLen() == 8);
   assert(str.getCap() == 10);
 
   str.insert(7, " You!");
-  Error::checkError();
+  Panic::checkError();
   assert(str.isSame("Oy Hello You!"));
   assert(str.getLen() == 13);
   assert(str.getCap() == 20);
 
   str.insert(9, "There ");
-  Error::checkError();
+  Panic::checkError();
   assert(str.isSame("Oy Hello There You!"));
   assert(str.getLen() == 19);
   assert(str.getCap() == 20);
@@ -87,22 +87,22 @@ void insertStrTest(void) {
 
 void removeTest(void) {
   String str = String("Hello");
-  Error::checkError();
+  Panic::checkError();
 
   char removed = str.remove(0);
-  Error::checkError();
+  Panic::checkError();
   assert(removed == 'H');
   assert(str.isSame("ello"));
   assert(str.getLen() == 4);
 
   removed = str.remove(3);
-  Error::checkError();
+  Panic::checkError();
   assert(removed == 'o');
   assert(str.isSame("ell"));
   assert(str.getLen() == 3);
 
   removed = str.remove(1);
-  Error::checkError();
+  Panic::checkError();
   assert(removed == 'l');
   assert(str.isSame("el"));
   assert(str.getLen() == 2);
@@ -110,43 +110,43 @@ void removeTest(void) {
 
 void containsTest(void) {
   String str = String("Hello");
-  Error::checkError();
+  Panic::checkError();
 
   i32 found = str.find("Hell");
-  Error::checkError();
+  Panic::checkError();
   assert(found == 0);
 
   found = str.find("lo");
-  Error::checkError();
+  Panic::checkError();
   assert(found == 3);
 
   found = str.find("Bye");
-  Error::checkError();
+  Panic::checkError();
   assert(found == -1);
 }
 
 void shrinkTest(void) {
   String str = String("Hello");
-  Error::checkError();
+  Panic::checkError();
   assert(str.getCap() == 5);
 
   str.pop();
   str.pop();
-  Error::checkError();
+  Panic::checkError();
   assert(str.getCap() == 5);
 
   str.shrinkToFit();
-  Error::checkError();
+  Panic::checkError();
   assert(str.getCap() == 3);
   assert(str.isSame("Hel"));
 }
 
 void splitTest(void) {
   String str = String("Hello");
-  Error::checkError();
+  Panic::checkError();
 
   String split = str.split(3);
-  Error::checkError();
+  Panic::checkError();
 
   assert(str.getLen() == 3);
   assert(str.getCap() == 5);
@@ -159,7 +159,7 @@ void splitTest(void) {
 
 void indexTest(void) {
   String str = String("Hello");
-  Error::checkError();
+  Panic::checkError();
 
   assert(str[0] == 'H');
   assert(str[1] == 'e');

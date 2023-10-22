@@ -55,7 +55,7 @@ public:
   DynamicArray(mem::Allocator* allocator) {
     // Input validation
     {
-      Error::resetError();
+      Panic::resetError();
 
       if (allocator == nullptr) {
         BL_THROW(dynamic_array_internal::errMsg(
@@ -76,7 +76,7 @@ public:
   DynamicArray(mem::Allocator* allocator, usize capacity) {
     // Input validation
     {
-      Error::resetError();
+      Panic::resetError();
 
       if (allocator == nullptr) {
         BL_THROW(dynamic_array_internal::errMsg(
@@ -104,7 +104,7 @@ public:
   /// If the capacity is `0`, then this just calls the
   /// `DynamicArray(mem::Allocator*)` constructor (nothing gets allocated).
   DynamicArray(usize capacity) {
-    Error::resetError();
+    Panic::resetError();
 
     this->allocator = &dynamic_array_internal::DEFAULT_C_ALLOCATOR;
 
@@ -125,7 +125,7 @@ public:
   DynamicArray<T>(mem::Allocator* allocator, std::initializer_list<T> list) {
     // Input validation
     {
-      Error::resetError();
+      Panic::resetError();
 
       if (allocator == nullptr) {
         BL_THROW(dynamic_array_internal::errMsg(
@@ -161,7 +161,7 @@ public:
   /// initializer list.
   DynamicArray<T>(std::initializer_list<T> list) {
     // Input validation
-    Error::resetError();
+    Panic::resetError();
 
     this->allocator       = &dynamic_array_internal::DEFAULT_C_ALLOCATOR;
 
@@ -192,7 +192,7 @@ public:
   /// The capacity of the cloned array will not be the same as the orininal's,
   /// but the length and elements will be the same.
   DynamicArray(const DynamicArray& other) {
-    Error::resetError();
+    Panic::resetError();
 
     this->allocator = other.allocator;
     this->len       = other.len;
@@ -231,11 +231,11 @@ public:
   T&            operator[](usize idx) {
     // Input validation
     {
-      Error::resetError();
+      Panic::resetError();
       if (idx > this->len - 1) {
         BL_THROW(dynamic_array_internal::errMsg(
             dynamic_array_internal::DynamicArrayError::IndexOutOfBounds));
-        Error::printErrorTrace();
+        Panic::printErrorTrace();
         abort();
       }
     }
@@ -263,7 +263,7 @@ public:
 
   /// Appends the given value to the end of the array.
   void push(T val) {
-    Error::resetError();
+    Panic::resetError();
 
     // Allocate on first push
     if (this->cap == 0) {
@@ -281,7 +281,7 @@ public:
     usize new_len = this->len + 1;
     if (new_len > this->cap) {
       this->resize();
-      if (Error::isError()) {
+      if (Panic::isError()) {
         BL_THROW(dynamic_array_internal::errMsg(
             dynamic_array_internal::DynamicArrayError::ResizeFailed));
         return;
@@ -294,7 +294,7 @@ public:
 
   /// Removes and returns the last element in the array.
   T pop(void) {
-    Error::resetError();
+    Panic::resetError();
 
     if (this->len == 0) {
       BL_THROW(dynamic_array_internal::errMsg(
@@ -318,7 +318,7 @@ public:
   void insert(usize idx, T val) {
     // Input validation
     {
-      Error::resetError();
+      Panic::resetError();
       if (idx > this->len - 1) {
         BL_THROW(dynamic_array_internal::errMsg(
             dynamic_array_internal::DynamicArrayError::IndexOutOfBounds));
@@ -335,7 +335,7 @@ public:
     // Resize original buffer if necessary
     if (this->len + 1 > this->cap) {
       this->resize();
-      if (Error::isError()) {
+      if (Panic::isError()) {
         BL_THROW(dynamic_array_internal::errMsg(
             dynamic_array_internal::DynamicArrayError::ResizeFailed));
         return;
@@ -362,7 +362,7 @@ public:
   T remove(usize idx) {
     // Input validation
     {
-      Error::resetError();
+      Panic::resetError();
       if (idx > this->len - 1) {
         BL_THROW(dynamic_array_internal::errMsg(
             dynamic_array_internal::DynamicArrayError::IndexOutOfBounds));
@@ -396,7 +396,7 @@ public:
   T swapRemove(usize idx) {
     // Input validation
     {
-      Error::resetError();
+      Panic::resetError();
       if (idx > this->len - 1) {
         BL_THROW(dynamic_array_internal::errMsg(
             dynamic_array_internal::DynamicArrayError::IndexOutOfBounds));

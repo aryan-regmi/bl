@@ -63,7 +63,7 @@ String::String() { this->allocator = &DEFAULT_C_ALLOCATOR; }
 String::String(mem::Allocator* allocator) {
   // Input validation
   {
-    Error::resetError();
+    Panic::resetError();
     if (allocator == nullptr) {
       BL_THROW(errMsg(StringError::InvalidAllocator));
       return;
@@ -76,7 +76,7 @@ String::String(mem::Allocator* allocator) {
 String::String(mem::Allocator* allocator, usize capacity) : cap(capacity) {
   // Input validation
   {
-    Error::resetError();
+    Panic::resetError();
     if (allocator == nullptr) {
       BL_THROW(errMsg(StringError::InvalidAllocator));
       this->cap = 0;
@@ -100,7 +100,7 @@ String::String(mem::Allocator* allocator, usize capacity) : cap(capacity) {
 String::String(mem::Allocator* allocator, const_cstr str) {
   // Input validation
   {
-    Error::resetError();
+    Panic::resetError();
     if (allocator == nullptr) {
       BL_THROW(errMsg(StringError::InvalidAllocator));
       return;
@@ -141,7 +141,7 @@ String::String(mem::Allocator* allocator, const_cstr str) {
 }
 
 String::String(const_cstr str) {
-  Error::resetError();
+  Panic::resetError();
   if (str == nullptr) {
     BL_THROW(errMsg(StringError::InvalidCString));
     return;
@@ -176,7 +176,7 @@ String::String(const_cstr str) {
 }
 
 String::String(const String& other) {
-  Error::resetError();
+  Panic::resetError();
 
   this->allocator = other.allocator;
   this->len       = other.len;
@@ -221,13 +221,13 @@ void       String::clear(void) {
 
 // FIXME: Allocate on first push!
 void String::push(char chr) {
-  Error::resetError();
+  Panic::resetError();
 
   // Resize if necessary
   usize new_len = this->len + 1;
   if (new_len > this->cap) {
     this->resize();
-    if (Error::isError()) {
+    if (Panic::isError()) {
       BL_THROW(errMsg(StringError::ResizeFailed));
       return;
     }
@@ -242,7 +242,7 @@ void String::push(char chr) {
 void String::push(const_cstr str) {
   // Input validation
   {
-    Error::resetError();
+    Panic::resetError();
 
     if (str == nullptr) {
       BL_THROW(errMsg(StringError::InvalidCString));
@@ -253,14 +253,14 @@ void String::push(const_cstr str) {
   usize len = strlen(str);
   for (usize i = 0; i < len; i++) {
     this->push(str[i]);
-    if (Error::isError()) {
+    if (Panic::isError()) {
       return;
     }
   }
 }
 
 char String::pop(void) {
-  Error::resetError();
+  Panic::resetError();
   if (this->len == 0) {
     BL_THROW(errMsg(StringError::InvalidPop));
     return '\0';
@@ -275,7 +275,7 @@ char String::pop(void) {
 void String::insert(usize idx, char chr) {
   // Input validation
   {
-    Error::resetError();
+    Panic::resetError();
 
     if (idx > this->len - 1) {
       BL_THROW(errMsg(StringError::IndexOutOfBounds));
@@ -303,7 +303,7 @@ void String::insert(usize idx, char chr) {
   usize new_len      = this->len + 1;
   if (new_len > this->cap) {
     this->resize();
-    if (Error::isError()) {
+    if (Panic::isError()) {
       BL_THROW(errMsg(StringError::ResizeFailed));
       return;
     }
@@ -324,7 +324,7 @@ void String::insert(usize idx, char chr) {
 void String::insert(usize idx, const_cstr str) {
   // Input validation
   {
-    Error::resetError();
+    Panic::resetError();
 
     if (str == nullptr) {
       BL_THROW(errMsg(StringError::InvalidCString));
@@ -360,7 +360,7 @@ void String::insert(usize idx, const_cstr str) {
   usize new_len      = this->len + len;
   if (new_len > this->cap) {
     this->resize();
-    if (Error::isError()) {
+    if (Panic::isError()) {
       BL_THROW(errMsg(StringError::ResizeFailed));
       return;
     }
@@ -385,7 +385,7 @@ void String::insert(usize idx, const_cstr str) {
 char String::remove(usize idx) {
   // Input validation
   {
-    Error::resetError();
+    Panic::resetError();
     if (idx > this->len - 1) {
       BL_THROW(errMsg(StringError::IndexOutOfBounds));
       return '\0';
@@ -412,7 +412,7 @@ char String::remove(usize idx) {
 i32 String::find(const_cstr substr) const {
   // Input validation
   {
-    Error::resetError();
+    Panic::resetError();
 
     if (substr == nullptr) {
       BL_THROW(errMsg(StringError::InvalidCString));
@@ -429,7 +429,7 @@ i32 String::find(const_cstr substr) const {
 }
 
 void String::shrinkToFit(void) {
-  Error::resetError();
+  Panic::resetError();
   if (this->cap > this->len) {
     cstr resized = (cstr)this->allocator->resizeRaw(this->data, this->len + 1);
     if (resized == nullptr) {
@@ -445,7 +445,7 @@ void String::shrinkToFit(void) {
 String String::split(usize idx) {
   // Input validation
   {
-    Error::resetError();
+    Panic::resetError();
     if (idx > this->len - 1) {
       BL_THROW(errMsg(StringError::IndexOutOfBounds));
       return String();
@@ -486,7 +486,7 @@ String String::split(usize idx) {
 bool String::isSame(String* other) const {
   // Input validation
   {
-    Error::resetError();
+    Panic::resetError();
     if (other == nullptr) {
       BL_THROW(errMsg(StringError::InvalidString));
     }
@@ -502,7 +502,7 @@ bool String::isSame(String* other) const {
 bool String::isSame(const_cstr other) const {
   // Input validation
   {
-    Error::resetError();
+    Panic::resetError();
     if (other == nullptr) {
       BL_THROW(errMsg(StringError::InvalidCString));
     }
@@ -514,10 +514,10 @@ bool String::isSame(const_cstr other) const {
 char& String::operator[](usize idx) {
   // Input validation
   {
-    Error::resetError();
+    Panic::resetError();
     if (idx > this->len - 1) {
       BL_THROW(errMsg(StringError::IndexOutOfBounds));
-      Error::printErrorTrace();
+      Panic::printErrorTrace();
       abort();
     }
   }
@@ -545,7 +545,7 @@ void String::resize(void) {
 
   // Free old buffer
   this->allocator->deallocRaw(this->data);
-  if (Error::isError()) {
+  if (Panic::isError()) {
     BL_THROW(errMsg(StringError::BufferDeallocationFailed));
     return;
   }
