@@ -86,6 +86,19 @@ void createTest(void) {
   assert(opt2.someOr(Some(3)).unwrap() == 3);
   assert(opt2.unwrapOr(2) == 2);
   // assert(opt2.unwrap(__FILE__, __LINE__) == 4); // Panics!
+
+  Option<NonTrivial> opt3 = Some(NonTrivial(1));
+  assert(opt3.isSome());
+  assert(!opt3.isNone());
+  assert(*opt3.someOr(Some(NonTrivial(3))).unwrap().x == 1);
+  assert(*opt3.unwrap().x == 1);
+
+  Option<NonTrivial> opt4 = None();
+  assert(!opt4.isSome());
+  assert(opt4.isNone());
+  assert(*opt4.someOr(Some(NonTrivial(3))).unwrap().x == 3);
+  assert(*opt4.unwrapOr(2).x == 2);
+  // assert(*opt4.unwrap(__FILE__, __LINE__).x == 4); // Panics!
 }
 
 void mapTest(void) {

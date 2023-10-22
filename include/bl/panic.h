@@ -10,7 +10,11 @@ using namespace primitives;
 void panic(const_cstr filename, usize line, const_cstr msg) noexcept;
 
 /// Convenience macro for `panic`.
-#define BL_PANIC(msg) panic(__FILE__, __LINE__, msg)
+#define BL_PANIC(msg)                                                          \
+  do {                                                                         \
+    panic(__FILE__, __LINE__, msg);                                            \
+    abort();                                                                   \
+  } while (0);
 
 } // namespace bl
 

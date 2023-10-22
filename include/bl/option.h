@@ -1,9 +1,10 @@
 #ifndef BL_OPTION_H
 #define BL_OPTION_H
 
-#include "bl/panic.h"      // BL_PANIC
+#include "bl/panic.h"      // BL_PANIC, panic
 #include "bl/primitives.h" // usize, const_cstr
-#include <algorithm>
+#include <algorithm>       // move
+#include <cstdlib>
 
 namespace bl {
 
@@ -158,7 +159,6 @@ public:
   T& unwrap(void) {
     if (!this->is_none) {
       return this->val.some;
-      // return std::move(this->val.some);
     }
 
     BL_PANIC("Unwrapped a `None` value");
@@ -178,6 +178,7 @@ public:
     }
 
     panic(filename, line, "Unwrapped a `None` value");
+    abort();
   }
 
   /// Returns the contained value (if `Some`), or the provided default.
