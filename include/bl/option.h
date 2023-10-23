@@ -4,8 +4,6 @@
 #include "bl/panic.h"      // BL_PANIC, panic
 #include "bl/primitives.h" // usize, const_cstr
 #include <algorithm>       // move
-#include <cstdio>
-#include <cstdlib>
 
 namespace bl {
 
@@ -38,9 +36,7 @@ public:
 
 private:
   T val;
-
   friend Option<T>;
-  friend Option<T&>;
 };
 
 /// Represents an optional with no value.
@@ -53,14 +49,10 @@ struct None {};
 template <typename T> struct Option {
 public:
   /// Creates an optional containing a value (`Some`).
-  Option(Some<T> val) {
-    this->val.some = std::move(val.val);
+  Option(Some<T> some) {
+    this->val.some = std::move(some.val);
     this->is_none  = false;
-    val.val.~T();
-
-    // this->val.some = std::move(val.val);
-    // val.~Some();
-    // this->is_none = false;
+    some.val.~T();
   }
 
   /// Creates an optional with no value (`None`).

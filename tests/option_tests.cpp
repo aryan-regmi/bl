@@ -1,5 +1,7 @@
 #include "bl/option.h"
+
 #include "bl/primitives.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstdio>

@@ -21,3 +21,11 @@ option_tests = executable(
   link_with: bl_lib,
 )
 test('Option Tests', option_tests)
+
+result_tests = executable(
+  'result_tests',
+  'result_tests.cpp',
+  include_directories: [public_headers],
+  link_with: bl_lib,
+)
+test('Result Tests', result_tests)
