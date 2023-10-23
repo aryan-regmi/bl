@@ -21,9 +21,15 @@ struct NonTrivial {
     // fprintf(stderr, "\nCopied!\n");
     // fprintf(stderr, "This: %p\n", this->x);
     // fprintf(stderr, "Other: %p\n", other.x);
-    int* data = (int*)malloc(sizeof(int));
-    *data     = *other.x;
-    this->x   = data;
+
+    if (this->x == nullptr) {
+      int* data = (int*)malloc(sizeof(int));
+      *data     = *other.x;
+      this->x   = data;
+      return;
+    }
+
+    *this->x = *other.x;
   }
 
   NonTrivial(NonTrivial&& other) {
@@ -36,7 +42,7 @@ struct NonTrivial {
 
   ~NonTrivial() {
     if (x != nullptr) {
-      // fprintf(stderr, "\nDeleted: %p\n", this->x);
+      // fprintf(stderr, "Deleted: %p\n", this->x);
       free(this->x);
       this->x = nullptr;
     }
@@ -46,13 +52,9 @@ struct NonTrivial {
     // fprintf(stderr, "\nCopy Assigned!\n");
     // fprintf(stderr, "Other: %p\n", other.x);
 
-    if (this->x == other.x) {
-      // fprintf(stderr, "This: %p\n", this->x);
-      return *this;
-    }
-
     this->x  = (int*)malloc(sizeof(int));
     *this->x = *other.x;
+
     // fprintf(stderr, "This: %p\n", this->x);
     return *this;
   }
@@ -60,11 +62,6 @@ struct NonTrivial {
   NonTrivial& operator=(NonTrivial&& other) {
     // fprintf(stderr, "\nMove Assigned!\n");
     // fprintf(stderr, "Other: %p\n", other.x);
-
-    if (this->x == other.x) {
-      // fprintf(stderr, "This: %p\n", this->x);
-      return *this;
-    }
 
     this->x = other.x;
     other.x = nullptr;
@@ -102,18 +99,14 @@ void createTest(void) {
 }
 
 void mapTest(void) {
-  Option<int> opt   = Some(3);
+  Option<int>        opt    = Some(3);
 
-  auto        mapFn = [](int x) -> const_cstr {
+  Option<const_cstr> mapped = opt.map(+[](int x) {
     if (x == 3) {
       return "Three";
     }
-
     return "Other";
-  };
-  typedef const_cstr (*MapFn)(int);
-
-  Option<const_cstr> mapped = opt.map((MapFn)mapFn);
+  });
   assert(mapped.isSome());
   assert(strcmp(mapped.unwrap(), "Three") == 0);
 }
@@ -128,8 +121,34 @@ void copyTest(void) {
   assert(*copied.unwrap().x == 1);
 }
 
+void replaceTest(void) {
+  Option<NonTrivial> opt      = Some(NonTrivial(1));
+  Option<NonTrivial> replaced = opt.replace(NonTrivial(2));
+  assert(replaced.isSome());
+  assert(*replaced.unwrap().x == 1);
+  assert(opt.isSome());
+  assert(*opt.unwrap().x == 2);
+
+  Option<NonTrivial> opt2      = None();
+  Option<NonTrivial> replaced2 = opt2.replace(NonTrivial(3));
+  assert(replaced2.isNone());
+  assert(opt2.isSome());
+  assert(*opt2.unwrap().x == 3);
+}
+
+void takeTest(void) {
+  Option<NonTrivial> opt   = Some(NonTrivial(1));
+
+  Option<NonTrivial> taken = opt.take();
+  assert(taken.isSome());
+  assert(*taken.unwrap().x == 1);
+  assert(opt.isNone());
+}
+
 int main(void) {
   createTest();
   mapTest();
   copyTest();
+  replaceTest();
+  takeTest();
 }

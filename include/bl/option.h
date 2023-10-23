@@ -4,69 +4,69 @@
 #include "bl/panic.h"      // BL_PANIC, panic
 #include "bl/primitives.h" // usize, const_cstr
 #include <algorithm>       // move
+#include <cstdio>
 #include <cstdlib>
 
 namespace bl {
 
-// TODO: Add doc comments for struct
-//
 // TODO: Add funcs to convert option to result
+//
+// TODO: Add template specialization for reference/pointer types?
 
 template <typename T> struct Option;
 
+/// Represents an optional containing a value.
 template <typename T> struct Some {
 public:
+  /// Creates a new `Option<T>` containing the given value.
   Some(T val) : val(std::move(val)) {}
 
+  /// Copy constructor.
   Some(const Some& other) { this->val = other.val; }
 
-  /// Default move constructor.
+  /// Move constructor.
   Some(Some&& other) { this->val = std::move(other.val); }
 
   /// Default destructor.
-  ~Some() = default;
+  ~Some()                            = default;
 
   /// Default copy assignment operator.
-  Some& operator=(const Some& other) {
-    if (this == other) {
-      return *this;
-    }
-
-    this->val = other.val;
-    return *this;
-  }
+  Some& operator=(const Some& other) = default;
 
   /// Default move assignment operator.
-  Some& operator=(Some&& other) {
-    if (this == other) {
-      return *this;
-    }
-
-    this->val = std::move(other.val);
-    return *this;
-  }
+  Some& operator=(Some&& other)      = default;
 
 private:
   T val;
 
   friend Option<T>;
+  friend Option<T&>;
 };
 
+/// Represents an optional with no value.
 struct None {};
 
+/// Represents an optional type.
+///
+/// The value can be either `Some` (contains a value) or `None` (contains no
+/// value).
 template <typename T> struct Option {
 public:
   /// Creates an optional containing a value (`Some`).
   Option(Some<T> val) {
-    // this->val.some = val.val;
     this->val.some = std::move(val.val);
     this->is_none  = false;
+    val.val.~T();
+
+    // this->val.some = std::move(val.val);
+    // val.~Some();
+    // this->is_none = false;
   }
 
   /// Creates an optional with no value (`None`).
   Option(None /* none */) { this->is_none = true; }
 
-  /// Clones the `other` value.
+  /// Clones the `other` optional.
   Option(const Option& other) {
     if (other.is_none) {
       this->is_none = true;
@@ -77,7 +77,7 @@ public:
     this->is_none  = false;
   };
 
-  /// Moves the `other` value.
+  /// Moves the `other` optional.
   Option(Option&& other) {
     if (other.is_none) {
       this->val.some.~T();
@@ -90,6 +90,7 @@ public:
     other.is_none  = true;
   };
 
+  /// Calls the contained values destructor (if `Some`).
   ~Option() {
     if (this->is_none) {
       return;
@@ -98,6 +99,7 @@ public:
     this->val.some.~T();
   }
 
+  /// Copy assignment operator.
   Option& operator=(const Option& other) {
     if (this == other) {
       return *this;
@@ -117,6 +119,7 @@ public:
     return *this;
   }
 
+  /// Move assignment operator.
   Option& operator=(Option&& other) {
     if (this == other) {
       return *this;
@@ -149,7 +152,7 @@ public:
       return *this;
     }
 
-    return optb;
+    return std::move(optb);
   }
 
   /// Returns the contained value.
@@ -213,9 +216,43 @@ public:
     return Some<U>(mapped);
   }
 
+  /// Replaces the value in the option with the given one, returning the old
+  /// value.
+  Option replace(T value) {
+    if (this->is_none) {
+      this->val.some = std::move(value);
+      this->is_none  = false;
+      return None();
+    }
+
+    T old_value = std::move(this->val.some);
+    this->val.some.~T();
+    this->val.some = std::move(value);
+    return Some(old_value);
+  }
+
+  /// Takes the value out of the option and leaves a `None` in its place.
+  Option take(void) {
+    if (this->is_none) {
+      return None();
+    }
+
+    T old_value = std::move(this->val.some);
+    this->val.some.~T();
+    this->is_none = true;
+    return Some(old_value);
+  }
+
 private:
+  /// Determines the type of the optional.
+  bool is_none;
+
+  /// The value stored in the optional (if `Some`).
   union OptVal {
+    /// The actual value stored in the optional.
     T    some;
+
+    /// Marker to cirumvent compiler bugs.
     bool marker;
 
     constexpr OptVal() : marker(false) {}
@@ -225,8 +262,6 @@ private:
 
     ~OptVal() {}
   } val;
-
-  bool is_none;
 };
 
 } // namespace bl
