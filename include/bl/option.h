@@ -7,6 +7,8 @@
 
 namespace bl {
 
+// TODO: Add operator bool so it can be used with `?`.
+//
 // TODO: Add funcs to convert option to result
 //
 // TODO: Add template specialization for reference/pointer types?
@@ -72,7 +74,7 @@ public:
   /// Moves the `other` optional.
   Option(Option&& other) {
     if (other.is_none) {
-      this->val.some.~T();
+      // this->val.some.~T();
       this->is_none = true;
       return;
     }

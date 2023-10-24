@@ -1,9 +1,12 @@
 #include "bl/primitives.h"
 #include "bl/result.h"
+#include <algorithm>
+#include <cassert>
+#include <cstdio>
 
 using namespace bl;
 
-struct StringError : Error {
+struct StringError : public Error {
   const_cstr errMsg() { return "Test Error!"; }
 };
 
@@ -74,4 +77,7 @@ template <typename T> using Res = Result<T, StringError>;
 int main(void) {
   Res<int> res  = Ok(3);
   Res<int> res2 = Err(StringError());
+
+  Res<int> copy = res;
+  Res<int> move = std::move(res2);
 }
