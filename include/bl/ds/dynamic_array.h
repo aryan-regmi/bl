@@ -3,8 +3,10 @@
 
 #include "bl/mem/allocator.h"   // Allocator
 #include "bl/mem/c_allocator.h" // CAllocator
+#include "bl/option.h"          // Some, None, Option
 #include "bl/panic.h"           // BL_PANIC, panic
 #include "bl/primitives.h"      // const_cstr, usize, u8
+#include "bl/result.h"          // Error, Result, Ok, Err
 
 #include <cstdlib>          // abort
 #include <cstring>          // memcpy
@@ -17,23 +19,34 @@ using namespace primitives;
 //
 // TODO: Replace raw casts with static_casts
 
-namespace dynamic_array_internal {
-enum class DynamicArrayError {
-  InvalidAllocator,
-  InvalidArray,
-  BufferAllocationFailed,
-  BufferDeallocationFailed,
-  BufferResizeFailed,
-  MemcpyFailed,
-  ResizeFailed,
-  IndexOutOfBounds,
-  InvalidPop,
+// Possible error types returned by `DynamicArray`'s methods.
+struct DynamicArrayError : public Error {
+public:
+  enum ErrorType {
+    InvalidAllocator,
+    ResizeFailed,
+    BufferAllocationFailed,
+    BufferDeallocationFailed,
+    BufferResizeFailed,
+    IndexOutOfBounds,
+    InvalidPop,
+    MemcpyFailed,
+    InvalidArray,
+  };
+
+  DynamicArrayError(ErrorType type);
+
+  /// Returns the error message for the current error type.
+  const_cstr errMsg(void) const;
+
+private:
+  ErrorType type;
 };
 
-const_cstr            errMsg(DynamicArrayError err);
+namespace {
 extern mem::Allocator DEFAULT_C_ALLOCATOR;
 extern const u8       RESIZE_FACTOR;
-} // namespace dynamic_array_internal
+} // namespace
 
 template <typename T> struct DynamicArray {
 public:
@@ -42,9 +55,7 @@ public:
   ///
   /// ## Note
   /// Nothing is allocated until the first push.
-  DynamicArray() {
-    this->allocator = &dynamic_array_internal::DEFAULT_C_ALLOCATOR;
-  }
+  DynamicArray() { this->allocator = &DEFAULT_C_ALLOCATOR; }
 
   /// Creates an empty dynamic array backed by the given allocator.
   ///
@@ -53,12 +64,9 @@ public:
   DynamicArray(mem::Allocator* allocator) {
     // Input validation
     {
-      Panic::resetError();
-
       if (allocator == nullptr) {
-        BL_THROW(dynamic_array_internal::errMsg(
-            dynamic_array_internal::DynamicArrayError::InvalidAllocator));
-        return;
+        BL_PANIC(
+            DynamicArrayError(DynamicArrayError::InvalidAllocator).errMsg())
       }
     }
 
@@ -74,21 +82,17 @@ public:
   DynamicArray(mem::Allocator* allocator, usize capacity) {
     // Input validation
     {
-      Panic::resetError();
-
       if (allocator == nullptr) {
-        BL_THROW(dynamic_array_internal::errMsg(
-            dynamic_array_internal::DynamicArrayError::InvalidAllocator));
-        return;
+        BL_PANIC(
+            DynamicArrayError(DynamicArrayError::InvalidAllocator).errMsg());
       }
     }
 
     if (capacity != 0) {
       T* data = (T*)allocator->allocRaw(capacity * sizeof(T));
       if (data == nullptr) {
-        BL_THROW(dynamic_array_internal::errMsg(
-            dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
-        return;
+        BL_PANIC(DynamicArrayError(DynamicArrayError::BufferAllocationFailed)
+                     .errMsg());
       }
       this->data = data;
       this->cap  = capacity;
@@ -102,16 +106,14 @@ public:
   /// If the capacity is `0`, then this just calls the
   /// `DynamicArray(mem::Allocator*)` constructor (nothing gets allocated).
   DynamicArray(usize capacity) {
-    Panic::resetError();
 
-    this->allocator = &dynamic_array_internal::DEFAULT_C_ALLOCATOR;
+    this->allocator = &DEFAULT_C_ALLOCATOR;
 
     if (capacity != 0) {
       T* data = (T*)this->allocator->allocRaw(capacity * sizeof(T));
       if (data == nullptr) {
-        BL_THROW(dynamic_array_internal::errMsg(
-            dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
-        return;
+        BL_PANIC(DynamicArrayError(DynamicArrayError::BufferAllocationFailed)
+                     .errMsg());
       }
       this->data = data;
       this->cap  = capacity;
@@ -119,16 +121,16 @@ public:
   }
 
   /// Creates a dynamic array backed by the given allocator with data from the
+  // BL_THROW(dynamic_array_internal::errMsg(
+  //     dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
+  // return;
   /// initializer list.
   DynamicArray<T>(mem::Allocator* allocator, std::initializer_list<T> list) {
     // Input validation
     {
-      Panic::resetError();
-
       if (allocator == nullptr) {
-        BL_THROW(dynamic_array_internal::errMsg(
-            dynamic_array_internal::DynamicArrayError::InvalidAllocator));
-        return;
+        BL_PANIC(
+            DynamicArrayError(DynamicArrayError::InvalidAllocator).errMsg());
       }
     }
 
@@ -138,9 +140,8 @@ public:
     const usize list_size = list.size();
     T*          data = (T*)this->allocator->allocRaw(sizeof(T) * list_size);
     if (data == nullptr) {
-      BL_THROW(dynamic_array_internal::errMsg(
-          dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
-      return;
+      BL_PANIC(DynamicArrayError(DynamicArrayError::BufferAllocationFailed)
+                   .errMsg());
     }
 
     // Copy data from given array
@@ -158,18 +159,14 @@ public:
   /// Creates a dynamic array backed by the `mem::CAllocator` with data from the
   /// initializer list.
   DynamicArray<T>(std::initializer_list<T> list) {
-    // Input validation
-    Panic::resetError();
-
-    this->allocator       = &dynamic_array_internal::DEFAULT_C_ALLOCATOR;
+    this->allocator       = &DEFAULT_C_ALLOCATOR;
 
     // Allocate buffer for dynamic array
     const usize list_size = list.size();
     T*          data = (T*)this->allocator->allocRaw(sizeof(T) * list_size);
     if (data == nullptr) {
-      BL_THROW(dynamic_array_internal::errMsg(
-          dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
-      return;
+      BL_PANIC(DynamicArrayError(DynamicArrayError::BufferAllocationFailed)
+                   .errMsg());
     }
 
     // Copy data from given array
@@ -190,25 +187,20 @@ public:
   /// The capacity of the cloned array will not be the same as the orininal's,
   /// but the length and elements will be the same.
   DynamicArray(const DynamicArray& other) {
-    Panic::resetError();
-
     this->allocator = other.allocator;
     this->len       = other.len;
     this->cap       = other.len;
 
     T* data         = (T*)this->allocator->allocRaw(this->len * sizeof(T));
     if (data == nullptr) {
-      BL_THROW(dynamic_array_internal::errMsg(
-          dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
-      return;
+      BL_PANIC(DynamicArrayError(DynamicArrayError::BufferAllocationFailed)
+                   .errMsg());
     }
     this->data = data;
 
     T* copied  = memcpy(this->data, other.data, this->len * sizeof(T));
     if (copied == nullptr) {
-      BL_THROW(dynamic_array_internal::errMsg(
-          dynamic_array_internal::DynamicArrayError::MemcpyFailed));
-      return;
+      BL_PANIC(DynamicArrayError(DynamicArrayError::MemcpyFailed).errMsg());
     }
     this->data = copied;
   }
@@ -224,17 +216,14 @@ public:
 
   /// Operator overload for index operator.
   ///
-  /// ## Error
-  /// - Throws an error if the index is out of the array's bounds.
+  /// ## Panics
+  /// - Panics if the index is out of the array's bounds.
   T&            operator[](usize idx) {
     // Input validation
     {
-      Panic::resetError();
       if (idx > this->len - 1) {
-        BL_THROW(dynamic_array_internal::errMsg(
-            dynamic_array_internal::DynamicArrayError::IndexOutOfBounds));
-        Panic::printErrorTrace();
-        abort();
+        BL_PANIC(
+            DynamicArrayError(DynamicArrayError::IndexOutOfBounds).errMsg());
       }
     }
 
@@ -255,21 +244,20 @@ public:
 
   /// Removes all of the array's contents, but leaves the capacity unchanged.
   void     clear(void) {
-    // TODO: Call destructor for elements?
+    for (usize i = 0; i < this->len; i++) {
+      this->data[i].~T();
+    }
     this->len = 0;
   }
 
   /// Appends the given value to the end of the array.
-  void push(T val) {
-    Panic::resetError();
-
+  Result<Void, DynamicArrayError> push(T val) {
     // Allocate on first push
     if (this->cap == 0) {
       T* data = (T*)this->allocator->allocRaw(sizeof(T));
       if (data == nullptr) {
-        BL_THROW(dynamic_array_internal::errMsg(
-            dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
-        return;
+        return Err(
+            DynamicArrayError(DynamicArrayError::BufferAllocationFailed));
       }
       this->data = data;
       this->cap  = 1;
@@ -278,11 +266,9 @@ public:
     // Resize if necessary
     usize new_len = this->len + 1;
     if (new_len > this->cap) {
-      this->resize();
-      if (Panic::isError()) {
-        BL_THROW(dynamic_array_internal::errMsg(
-            dynamic_array_internal::DynamicArrayError::ResizeFailed));
-        return;
+      Result<Void, DynamicArrayError> resized = this->resize();
+      if (!resized) {
+        return resized;
       }
     }
 
@@ -291,18 +277,16 @@ public:
   }
 
   /// Removes and returns the last element in the array.
-  T pop(void) {
-    Panic::resetError();
-
+  ///
+  /// Returns `None` if the array is empty.
+  Option<T> pop(void) {
     if (this->len == 0) {
-      BL_THROW(dynamic_array_internal::errMsg(
-          dynamic_array_internal::DynamicArrayError::InvalidPop));
-      return T();
+      return None();
     }
 
     T popped   = this->data[this->len - 1];
     this->len -= 1;
-    return popped;
+    return Some(popped);
   }
 
   // TODO: Update `String`'s `insert` and `remove` functions to shift like these
@@ -313,30 +297,24 @@ public:
   ///
   /// ## Note
   /// This is **O(n)** in the worst case due to the shifting of elements.
-  void insert(usize idx, T val) {
+  Result<Void, DynamicArrayError> insert(usize idx, T val) {
     // Input validation
     {
-      Panic::resetError();
       if (idx > this->len - 1) {
-        BL_THROW(dynamic_array_internal::errMsg(
-            dynamic_array_internal::DynamicArrayError::IndexOutOfBounds));
-        return;
+        return Err(DynamicArrayError(DynamicArrayError::IndexOutOfBounds));
       }
     }
 
     // Just call `push` if index is the last element
     if (idx == this->len - 1) {
-      this->push(val);
-      return;
+      return this->push(val);
     }
 
     // Resize original buffer if necessary
     if (this->len + 1 > this->cap) {
-      this->resize();
-      if (Panic::isError()) {
-        BL_THROW(dynamic_array_internal::errMsg(
-            dynamic_array_internal::DynamicArrayError::ResizeFailed));
-        return;
+      Result<Void, DynamicArrayError> resized = this->resize();
+      if (!resized) {
+        return resized;
       }
     }
 
@@ -348,6 +326,8 @@ public:
     // Insert value to specified index
     this->data[idx]  = val;
     this->len       += 1;
+
+    return Ok(Void());
   }
 
   /// Removes and returns the element at the specified index, shifting all
@@ -357,14 +337,11 @@ public:
   /// This is **O(n)** in the worst case due to the shifting of elements; if the
   /// order does not need to be preserved, then `DynamicArray::swapRemove`
   /// should be used instead.
-  T remove(usize idx) {
+  Option<T> remove(usize idx) {
     // Input validation
     {
-      Panic::resetError();
       if (idx > this->len - 1) {
-        BL_THROW(dynamic_array_internal::errMsg(
-            dynamic_array_internal::DynamicArrayError::IndexOutOfBounds));
-        abort();
+        return None();
       }
     }
 
@@ -381,7 +358,7 @@ public:
     }
     this->len -= 1;
 
-    return removed;
+    return Some(removed);
   }
 
   /// Removes and returns the element at the specified index.
@@ -391,14 +368,11 @@ public:
   /// ## Note
   /// This does not preserve ordering, but is **O(1)**; if order needs to be
   /// preserved, use `DynamicArray::remove` instead;
-  T swapRemove(usize idx) {
+  Option<T> swapRemove(usize idx) {
     // Input validation
     {
-      Panic::resetError();
       if (idx > this->len - 1) {
-        BL_THROW(dynamic_array_internal::errMsg(
-            dynamic_array_internal::DynamicArrayError::IndexOutOfBounds));
-        abort();
+        return None();
       }
     }
 
@@ -413,32 +387,60 @@ public:
     this->data[idx]  = this->data[this->len - 1];
     this->len       -= 1;
 
-    return removed;
+    return Some(removed);
+  }
+
+  /// Checks if the array contains the specified value.
+  bool contains(T to_find) const {
+    for (usize i = 0; i < this->len; i++) {
+      if (this->data[i] == to_find) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /// Shrinks the capacity of the vector to its length.
+  ///
+  /// ## Note
+  /// Some allocators may keep more than just the length allocated.
+  Result<Void, DynamicArrayError> shrinkToFit(void) {
+    if (this->cap > this->len) {
+      T* resized =
+          this->allocator->resizeRaw(this->data, this->len * sizeof(T));
+      if (resized == nullptr) {
+        return Err(DynamicArrayError(DynamicArrayError::BufferResizeFailed));
+      }
+
+      this->data = resized;
+      this->cap  = this->len;
+    }
+
+    return Ok(Void());
   }
 
 private:
   /// Backing allocator used for internal allocations.
-  mem::Allocator* allocator;
+  mem::Allocator*                 allocator;
 
   /// The actual element buffer.
-  T*              data = nullptr;
+  T*                              data = nullptr;
 
   /// The length of the array.
-  usize           len  = 0;
+  usize                           len  = 0;
 
   /// The capacity of the array.
-  usize           cap  = 0;
+  usize                           cap  = 0;
 
   /// Function to resize the array.
-  void            resize(void) {
+  Result<Void, DynamicArrayError> resize(void) {
     // Resize the buffer to new capacity
-    usize new_cap = this->cap * dynamic_array_internal::RESIZE_FACTOR;
+    usize new_cap = this->cap * RESIZE_FACTOR;
     T*    resized =
         (T*)this->allocator->resizeRaw(this->data, new_cap * sizeof(T));
     if (resized == nullptr) {
-      BL_THROW(dynamic_array_internal::errMsg(
-          dynamic_array_internal::DynamicArrayError::BufferResizeFailed));
-      return;
+      return Err(DynamicArrayError(DynamicArrayError::BufferResizeFailed));
     }
 
     // Set the buffer to the resized one

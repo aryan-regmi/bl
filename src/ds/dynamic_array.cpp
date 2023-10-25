@@ -4,10 +4,13 @@
 
 namespace bl::ds {
 
-namespace dynamic_array_internal {
+namespace {
+mem::Allocator DEFAULT_C_ALLOCATOR = mem::CAllocator();
+const u8       RESIZE_FACTOR       = 2;
+} // namespace
 
-const_cstr errMsg(DynamicArrayError err) {
-  switch (err) {
+const_cstr DynamicArrayError::errMsg(void) const {
+  switch (this->type) {
   case DynamicArrayError::InvalidAllocator:
     return "DynamicArrayError: Invalid Allocator (the allocator was null)";
   case DynamicArrayError::BufferAllocationFailed:
@@ -29,13 +32,6 @@ const_cstr errMsg(DynamicArrayError err) {
     return "DynamicArrayError: The array used for initalization was invalid "
            "(must be non-null array type)";
   }
-
-  return nullptr;
 }
-
-mem::Allocator DEFAULT_C_ALLOCATOR = mem::CAllocator();
-
-const u8       RESIZE_FACTOR       = 2;
-} // namespace dynamic_array_internal
 
 } // namespace bl::ds

@@ -1,5 +1,4 @@
 #include "bl/ds/dynamic_array.h"
-#include "bl/error.h"
 #include "bl/mem/allocator.h"
 #include "bl/mem/c_allocator.h"
 #include "bl/primitives.h"
