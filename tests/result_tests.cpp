@@ -75,9 +75,9 @@ struct NonTrivial {
 template <typename T> using Res = Result<T, StringError>;
 
 int main(void) {
-  Res<int> res  = Ok(3);
-  Res<int> res2 = Err(StringError());
+  Res<NonTrivial> res  = Ok(NonTrivial(1));
+  Res<int>        res2 = Err(StringError());
 
-  Res<int> copy = res;
-  Res<int> move = std::move(res2);
+  Res<NonTrivial> copy = res;
+  Res<int>        move = std::move(res2);
 }

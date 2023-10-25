@@ -7,12 +7,20 @@
 
 namespace bl {
 
-// TODO: Add operator bool so it can be used with `?`.
-//
 // TODO: Add funcs to convert option to result
 //
 // TODO: Add template specialization for reference/pointer types?
 
+/// Represents an optional type.
+///
+/// The value can be either `Some` (contains a value) or `None` (contains no
+/// value).
+///
+/// ## Note
+/// This should be used with moveable structs/classes for the lowest memory
+/// footprint (and to reduce the number of copies that occur). Use of this with
+/// non-moveable classes can result in more copies than expected and use up
+/// extra memory.
 template <typename T> struct Option;
 
 /// Represents an optional containing a value.
@@ -44,10 +52,6 @@ private:
 /// Represents an optional with no value.
 struct None {};
 
-/// Represents an optional type.
-///
-/// The value can be either `Some` (contains a value) or `None` (contains no
-/// value).
 template <typename T> struct Option {
 public:
   /// Creates an optional containing a value (`Some`).
@@ -133,6 +137,9 @@ public:
     other.is_none  = true;
     return *this;
   }
+
+  /// Bool operator to use result with `?` for easy chaining.
+  operator bool() const { return !this->is_none; }
 
   /// Returns `true` if the option contains a value.
   bool   isSome(void) const { return !this->is_none; }
