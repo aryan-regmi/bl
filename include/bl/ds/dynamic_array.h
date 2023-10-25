@@ -1,16 +1,14 @@
 #ifndef BL_DYNAMIC_ARRAY_H
 #define BL_DYNAMIC_ARRAY_H
 
-#include "bl/error.h"           // resetError, BL_THROW
 #include "bl/mem/allocator.h"   // Allocator
 #include "bl/mem/c_allocator.h" // CAllocator
+#include "bl/panic.h"           // BL_PANIC, panic
 #include "bl/primitives.h"      // const_cstr, usize, u8
 
-#include <cstdio>
-#include <cstdlib> // abort
-#include <cstring> // memcpy
-#include <initializer_list>
-#include <type_traits>
+#include <cstdlib>          // abort
+#include <cstring>          // memcpy
+#include <initializer_list> // initializer_list
 
 namespace bl::ds {
 using namespace primitives;

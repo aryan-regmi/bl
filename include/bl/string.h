@@ -24,30 +24,10 @@ public:
     InvalidPop,
   };
 
-  StringBufferError(ErrorType type) : type(type) {}
+  StringBufferError(ErrorType type);
 
-  const_cstr errMsg(void) const {
-    switch (this->type) {
-    case ErrorType::BufferAllocationFailed:
-      return "StringError: Unable to allocate space for the string buffer";
-    case ErrorType::StrncpyFailed:
-      return "StringError: `strncpy` failed (returned null)";
-    case ErrorType::ResizeFailed:
-      return "StringError: Unable to resize the string";
-    case ErrorType::InvalidCString:
-      return "StringError: Invalid C-string (the provided C-string was null)";
-    case ErrorType::InvalidString:
-      return "StringError: Invalid string (the provided string was null)";
-    case ErrorType::BufferDeallocationFailed:
-      return "StringError: Unable to deallocate the string buffer";
-    case ErrorType::BufferResizeFailed:
-      return "StringError: Unable to resize for the string buffer";
-    case ErrorType::IndexOutOfBounds:
-      return "StringError: The specified index was out of the string's bounds";
-    case ErrorType::InvalidPop:
-      return "StringError: Tried `popping` from an empty string";
-    }
-  }
+  /// Returns the error message for the current error type.
+  const_cstr errMsg(void) const;
 
 private:
   ErrorType type;
