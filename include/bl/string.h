@@ -90,12 +90,22 @@ public:
   ///
   /// ## Panics
   /// - Panics if allocator is unable to allocate space for the buffer.
-  String(const String&);
+  String(const String& other);
+
+  /// Moves the `other` string.
+  String(String&& other);
 
   /// Deallocates memory used by the string.
   ~String();
 
-  String&                           operator=(const String&) = default;
+  /// Clones the `other` string and assigns it to `this`.
+  ///
+  /// ## Panics
+  /// - Panics if allocator is unable to allocate space for the buffer.
+  String&                           operator=(const String& other);
+
+  /// Moves the `other` string and assigns it to `this`.
+  String&                           operator=(String&& other);
 
   /// Operator overload for index operator.
   ///

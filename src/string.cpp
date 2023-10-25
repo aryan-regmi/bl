@@ -7,12 +7,12 @@
 #include "bl/primitives.h"      // const_cstr, cstr, usize, u8, Void
 #include "bl/result.h"          // Result, Ok, Err
 
+#include <algorithm>
+#include <cstdio>
 #include <cstdlib> // abort
 #include <cstring> // strncpy, strlen, memmove
 
 // TODO: Replace raw casts with static_casts
-//
-// TODO: Add move constructors etc
 
 namespace bl {
 namespace {
@@ -43,6 +43,8 @@ const_cstr StringBufferError::errMsg(void) const {
   case ErrorType::InvalidPop:
     return "StringError: Tried `popping` from an empty string";
   }
+
+  BL_PANIC("Unreachable");
 }
 
 String::String() { this->allocator = &DEFAULT_C_ALLOCATOR; }
@@ -149,6 +151,57 @@ String::String(const_cstr str) {
 }
 
 String::String(const String& other) {
+  this->len = other.len;
+  this->cap = other.len;
+
+  if (other.allocator != nullptr) {
+    this->allocator = other.allocator;
+  }
+
+  if (this->cap != 0) {
+    cstr data = (cstr)this->allocator->allocRaw(this->len + 1);
+    if (data == nullptr) {
+      this->len = 0;
+      this->cap = 0;
+      BL_PANIC("Unable to allocate space for the string buffer");
+    }
+    this->data  = data;
+
+    cstr copied = strncpy(this->data, other.data, this->len);
+    if (copied == nullptr) {
+      this->len = 0;
+      this->cap = 0;
+      this->allocator->deallocRaw(this->data);
+      this->data = nullptr;
+      BL_PANIC("Unable to copy string (`strncpy` returned NULL)");
+    }
+    copied[this->len] = '\0';
+    this->data        = copied;
+  }
+}
+
+String::String(String&& other) {
+  this->data      = other.data;
+  this->len       = other.len;
+  this->cap       = other.cap;
+  this->allocator = other.allocator;
+
+  other.data      = nullptr;
+  other.len       = 0;
+  other.cap       = 0;
+  other.allocator = nullptr;
+}
+
+String::~String() {
+  if (this->cap != 0 && this->data != nullptr) {
+    this->allocator->deallocRaw(this->data);
+    this->data = nullptr;
+    this->len  = 0;
+    this->cap  = 0;
+  }
+}
+
+String& String::operator=(const String& other) {
   this->allocator = other.allocator;
   this->len       = other.len;
   this->cap       = other.len;
@@ -156,23 +209,32 @@ String::String(const String& other) {
   cstr data       = (cstr)this->allocator->allocRaw(this->len + 1);
   if (data == nullptr) {
     BL_PANIC("Unable to allocate space for the string buffer");
-    return;
   }
-  this->data  = data;
 
-  cstr copied = strncpy(this->data, other.data, this->len);
+  cstr copied = strncpy(data, other.data, this->len);
   if (copied == nullptr) {
     BL_PANIC("Unable to copy string (`strncpy` returned NULL)");
-    return;
   }
   copied[this->len] = '\0';
+
   this->data        = copied;
+  return *this;
 }
 
-String::~String() {
-  if (this->cap != 0) {
-    this->allocator->deallocRaw(this->data);
-  }
+String& String::operator=(String&& other) {
+  // Copy other string's info
+  this->allocator = other.allocator;
+  this->len       = other.len;
+  this->cap       = other.len;
+  this->data      = std::move(other.data);
+
+  // Reset other string
+  other.allocator = nullptr;
+  other.len       = 0;
+  other.cap       = 0;
+  other.data      = nullptr;
+
+  return *this;
 }
 
 const_cstr String::getRaw(void) const { return this->data; }
@@ -220,11 +282,8 @@ Result<Void, StringBufferError> String::push(char chr) {
 Result<Void, StringBufferError> String::push(const_cstr str) {
   // Input validation
   {
-    Panic::resetError();
-
     if (str == nullptr) {
-      BL_THROW(errMsg(StringError::InvalidCString));
-      return;
+      return Err(StringBufferError(StringBufferError::InvalidCString));
     }
   }
 
@@ -352,12 +411,13 @@ Result<Void, StringBufferError> String::insert(usize idx, const_cstr str) {
   }
   cstr copied_split = strncpy(this->data + idx + len, split, split_size);
   if (copied_split == nullptr) {
-    BL_THROW(errMsg(StringError::StrncpyFailed));
-    return;
+    return Err(StringBufferError(StringBufferError::StrncpyFailed));
   }
   this->allocator->deallocRaw(split);
   this->len             += len;
   this->data[this->len]  = '\0';
+
+  return Ok(Void());
 }
 
 Result<char, StringBufferError> String::remove(usize idx) {
@@ -428,9 +488,9 @@ Result<String, StringBufferError> String::split(usize idx) {
   }
 
   if (idx == 0) {
-    String* split = this;
+    String split = *this;
     this->clear();
-    return Ok(*split);
+    return Ok(split);
   }
 
   if (idx == this->len - 1) {

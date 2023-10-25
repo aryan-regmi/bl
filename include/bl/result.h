@@ -280,6 +280,7 @@ public:
 
   /// Returns the contained `Err` value.
   ///
+  ///
   /// ## Panics
   /// - Panics if the result is `Ok`.
   E& unwrapErr(void) {
