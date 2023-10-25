@@ -7,10 +7,9 @@
 #include "bl/primitives.h"      // const_cstr, cstr, usize, u8, Void
 #include "bl/result.h"          // Result, Ok, Err
 
-#include <algorithm>
-#include <cstdio>
-#include <cstdlib> // abort
-#include <cstring> // strncpy, strlen, memmove
+#include <algorithm> // move
+#include <cstdlib>   // abort
+#include <cstring>   // strncpy, strlen, memmove
 
 // TODO: Replace raw casts with static_casts
 
@@ -201,7 +200,15 @@ String::~String() {
   }
 }
 
+bool String::operator==(const String& other) const {
+  return this->data == other.data;
+}
+
 String& String::operator=(const String& other) {
+  if (*this == other) {
+    return *this;
+  }
+
   this->allocator = other.allocator;
   this->len       = other.len;
   this->cap       = other.len;

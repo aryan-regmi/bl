@@ -107,6 +107,22 @@ public:
   /// Moves the `other` string and assigns it to `this`.
   String&                           operator=(String&& other);
 
+  /// Checks if the strings are equal.
+  ///
+  /// ## Note
+  /// This compares the addresses of the character buffers of the two strings,
+  /// and does not check if the contents of the two strings are the same; for
+  /// this functionality, use `String::isSame`.
+  bool                              operator==(const String& other) const;
+
+  /// Checks if the strings are equal.
+  ///
+  /// ## Note
+  /// This compares the addresses of the character buffers of the two strings,
+  /// and does not check if the contents of the two strings are the same; for
+  /// this functionality, use `String::isSame`.
+  bool                              operator==(String* other) const;
+
   /// Operator overload for index operator.
   ///
   /// ## Panics
