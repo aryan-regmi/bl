@@ -17,7 +17,9 @@ using namespace primitives;
 /// An interface for errors, to be used in conjunction with `Result`.
 struct Error {
   virtual ~Error() {}
-  virtual const_cstr errMsg() = 0;
+
+  /// Converts the error into a readable string.
+  virtual const_cstr errMsg() const = 0;
 };
 
 /// A type used for returning and propagating errors.

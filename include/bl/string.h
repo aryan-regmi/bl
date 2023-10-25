@@ -2,10 +2,56 @@
 #define BL_STRING_H
 
 #include "bl/mem/allocator.h" // Allocator
-#include "bl/primitives.h"    // cstr, const_cstr, usize
+#include "bl/option.h"        // Option
+#include "bl/primitives.h"    // cstr, const_cstr, usize, Void
+#include "bl/result.h"        // Error, Result
 
 namespace bl {
 using namespace primitives;
+
+// Possible error types returned by `String`'s methods.
+struct StringBufferError : public Error {
+public:
+  enum ErrorType {
+    ResizeFailed,
+    BufferAllocationFailed,
+    BufferDeallocationFailed,
+    BufferResizeFailed,
+    IndexOutOfBounds,
+    StrncpyFailed,
+    InvalidCString,
+    InvalidString,
+    InvalidPop,
+  };
+
+  StringBufferError(ErrorType type) : type(type) {}
+
+  const_cstr errMsg(void) const {
+    switch (this->type) {
+    case ErrorType::BufferAllocationFailed:
+      return "StringError: Unable to allocate space for the string buffer";
+    case ErrorType::StrncpyFailed:
+      return "StringError: `strncpy` failed (returned null)";
+    case ErrorType::ResizeFailed:
+      return "StringError: Unable to resize the string";
+    case ErrorType::InvalidCString:
+      return "StringError: Invalid C-string (the provided C-string was null)";
+    case ErrorType::InvalidString:
+      return "StringError: Invalid string (the provided string was null)";
+    case ErrorType::BufferDeallocationFailed:
+      return "StringError: Unable to deallocate the string buffer";
+    case ErrorType::BufferResizeFailed:
+      return "StringError: Unable to resize for the string buffer";
+    case ErrorType::IndexOutOfBounds:
+      return "StringError: The specified index was out of the string's bounds";
+    case ErrorType::InvalidPop:
+      return "StringError: Tried `popping` from an empty string";
+    }
+  }
+
+private:
+  ErrorType type;
+};
 
 /// A dynamic string buffer.
 struct String {
@@ -22,8 +68,8 @@ public:
   /// ## Note
   /// Nothing is allocated until the first push.
   ///
-  /// ## Error
-  /// - Throws an error if the provided allocator is null.
+  /// ## Panics
+  /// - Panics if the provided allocator is null.
   String(mem::Allocator* allocator);
 
   /// Creates an empty string with the specified capacity, backed by the given
@@ -33,17 +79,17 @@ public:
   /// If the capacity is `0`, then this just calls the `String(mem::Allocator*)`
   /// constructor (nothing gets allocated).
   ///
-  /// ## Error
-  /// - Throws an error if the provided allocator is null.
-  /// - Throws an error if allocator is unable to allocate space for the buffer.
+  /// ## Panics
+  /// - Panics if the provided allocator is null.
+  /// - Panics if allocator is unable to allocate space for the buffer.
   String(mem::Allocator* allocator, usize capacity);
 
   /// Creates a string containing the given C-string, with the given allocator
   /// as its backing allocator.
   ///
-  /// ## Error
-  /// - Throws an error if the provided allocator or the C-string is null.
-  /// - Throws an error if allocator is unable to allocate space for the buffer.
+  /// ## Panics
+  /// - Panics if the provided allocator or the C-string is null.
+  /// - Panics if allocator is unable to allocate space for the buffer.
   String(mem::Allocator* allocator, const_cstr str);
 
   /// Creates a string containing the given C-string.
@@ -51,9 +97,9 @@ public:
   /// ## Note
   /// This overload uses `mem::CAllocator` as its backing allocator.
   ///
-  /// ## Error
-  /// - Throws an error if the C-string is null.
-  /// - Throws an error if allocator is unable to allocate space for the buffer.
+  /// ## Panics
+  /// - Panics if the C-string is null.
+  /// - Panics if allocator is unable to allocate space for the buffer.
   String(const_cstr str);
 
   /// Clones the string.
@@ -62,74 +108,60 @@ public:
   /// The capacity of the cloned string will not be the same as the
   /// original string, but the length and contents will be the same.
   ///
-  /// ## Error
-  /// - Throws an error if allocator is unable to allocate space for the buffer.
+  /// ## Panics
+  /// - Panics if allocator is unable to allocate space for the buffer.
   String(const String&);
 
   /// Deallocates memory used by the string.
   ~String();
 
-  String&    operator=(const String&) = default;
+  String&                           operator=(const String&) = default;
 
   /// Operator overload for index operator.
   ///
-  /// ## Error
-  /// - Throws an error if the index is out of the string's bounds.
-  char&      operator[](usize idx);
+  /// ## Panics
+  /// - Panics if the index is out of the string's bounds.
+  char&                             operator[](usize idx);
 
   /// Returns the underyling string buffer.
-  const_cstr getRaw(void) const;
+  const_cstr                        getRaw(void) const;
 
   /// Returns the length of the string (doesn't count the null-terminator).
-  usize      getLen(void) const;
+  usize                             getLen(void) const;
 
   /// Returns the capacity of the string (doesn't count the null-terminator).
-  usize      getCap(void) const;
+  usize                             getCap(void) const;
 
   /// Checks if the string is empty.
-  bool       isEmpty(void) const;
+  bool                              isEmpty(void) const;
 
   /// Removes all of the string's contents, but leaves the capacity unchanged.
-  void       clear(void);
+  void                              clear(void);
 
   /// Appends the given character to the end of the string.
   ///
   /// ## Note
   /// This can cause a resize if the string does not have enough capacity.
-  ///
-  /// ## Error
-  /// - Throws an error if the string failed to resize.
-  void       push(char chr);
+  Result<Void, StringBufferError>   push(char chr);
 
   /// Appends the given C-string to the end of the string.
   ///
   /// ## Note
   /// This can cause a resize if the string does not have enough capacity.
-  ///
-  /// ## Error
-  /// - Throws an error if the provided C-string is null.
-  /// - Throws an error if the string failed to resize.
-  void       push(const_cstr str);
+  Result<Void, StringBufferError>   push(const_cstr str);
 
   /// Removes and returns the last character in the string.
   ///
   /// ## Note
-  /// If the string is empty, this will return the null-terminator (`'\0'`)/
-  ///
-  /// ## Error
-  /// - Throws an error if the string is empty.
-  char       pop(void);
+  /// If the string is empty, this will return `None`.
+  Option<char>                      pop(void);
 
   /// Inserts the given character at the specified index in the string.
   ///
   /// ## Note
   /// This is an **O(n)** operation since it requires copying every character in
   /// the buffer.
-  ///
-  /// ## Error
-  /// - Throws an error if the index is out of the string's bounds.
-  /// - Throws an error if the string failed to resize.
-  void       insert(usize idx, char chr);
+  Result<Void, StringBufferError>   insert(usize idx, char chr);
 
   /// Inserts the given C-string at the specified index in the string.
   ///
@@ -137,45 +169,29 @@ public:
   /// This is an **O(n)** operation since it requires copying every character in
   /// the buffer.
   ///
-  /// ## Error
-  /// - Throws an error if the provided C-string is null.
-  /// - Throws an error if the index is out of the string's bounds.
-  /// - Throws an error if the string failed to resize.
-  void       insert(usize idx, const_cstr str);
+  Result<Void, StringBufferError>   insert(usize idx, const_cstr str);
 
   /// Removes and returns the character at the specified index from the string.
   ///
   /// ##Note
   /// This is an **O(n)** operation since it requires copying every character in
   /// the buffer.
-  ///
-  /// ## Error
-  /// - Throws an error if the index is out of the string's bounds.
-  char       remove(usize idx);
+  Result<char, StringBufferError>   remove(usize idx);
 
   /// Checks if the string contains the specified sub-string.
   ///
-  /// This will return the index where the sub-string was found, or `-1` if it
+  /// This will return the index where the sub-string was found, or `None` if it
   /// wasn't found.
-  ///
-  /// ## Error
-  /// - Throws an error if the sub-string is null.
-  i32        find(const_cstr substr) const;
+  Option<i32>                       find(const_cstr substr) const;
 
   /// Shrinks the capacity of the string to match its length.
-  ///
-  /// ## Error
-  /// - Throws an error if the string failed to resize.
-  void       shrinkToFit(void);
+  Result<Void, StringBufferError>   shrinkToFit(void);
 
   /// Splits the string into two at the given index.
   ///
   /// The original string contains bytes in the range `[0, idx)`, and the
   /// returned string contains the bytes in the range `[idx, len)`.
-  ///
-  /// ## Error
-  /// - Throws an error if the index is out of the string's bounds.
-  String     split(usize idx);
+  Result<String, StringBufferError> split(usize idx);
 
   /// Checks if the two strings are the same.
   ///
@@ -183,33 +199,33 @@ public:
   /// This only checks for the string contents; the capacity and allocator of
   /// the strings may differ.
   ///
-  /// ## Error
-  /// - Throws an error if the `other` string is null.
-  bool       isSame(String* other) const;
+  /// ## Panics
+  /// - Panics if the `other` string is null.
+  bool                              isSame(String* other) const;
 
   /// Checks if the two strings are the same.
   ///
   /// This overload check a raw C-string against the string.
   ///
-  /// ## Error
-  /// - Throws an error if the `other` C-string is null.
-  bool       isSame(const_cstr other) const;
+  /// ## Panics
+  /// - Panics if the `other` C-string is null.
+  bool                              isSame(const_cstr other) const;
 
 private:
   /// Backing allocator used for internal allocations.
-  mem::Allocator* allocator;
+  mem::Allocator*                 allocator;
 
   /// The actual string buffer.
-  cstr            data = nullptr;
+  cstr                            data = nullptr;
 
   /// The number of bytes allocated by/for the string.
-  usize           cap  = 0;
+  usize                           cap  = 0;
 
   /// The length of the string.
-  usize           len  = 0;
+  usize                           len  = 0;
 
   /// Function to resize the string.
-  void            resize(void);
+  Result<Void, StringBufferError> resize(void);
 };
 
 } // namespace bl

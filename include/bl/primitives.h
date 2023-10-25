@@ -24,6 +24,9 @@ typedef double         f64;
 typedef char*          cstr;
 typedef const char*    const_cstr;
 
+/// An object that represents `void` for `Result` and `Option` types.
+struct Void {};
+
 } // namespace bl::primitives
 
 #endif // !BL_PRIMITIVES_H
