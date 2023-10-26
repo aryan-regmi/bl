@@ -4,10 +4,12 @@
 
 namespace bl::ds {
 
-namespace {
+namespace dynamic_array_internal {
 mem::Allocator DEFAULT_C_ALLOCATOR = mem::CAllocator();
 const u8       RESIZE_FACTOR       = 2;
-} // namespace
+} // namespace dynamic_array_internal
+
+DynamicArrayError::DynamicArrayError(ErrorType type) : type(type) {}
 
 const_cstr DynamicArrayError::errMsg(void) const {
   switch (this->type) {
@@ -26,8 +28,6 @@ const_cstr DynamicArrayError::errMsg(void) const {
            "bounds";
   case DynamicArrayError::InvalidPop:
     return "DynamicArrayError: Tried `popping` from an empty array";
-  case DynamicArrayError::MemcpyFailed:
-    return "DynamicArrayError: `memcpy` failed (returned null)";
   case DynamicArrayError::InvalidArray:
     return "DynamicArrayError: The array used for initalization was invalid "
            "(must be non-null array type)";

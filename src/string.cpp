@@ -205,10 +205,6 @@ bool String::operator==(const String& other) const {
 }
 
 String& String::operator=(const String& other) {
-  if (*this == other) {
-    return *this;
-  }
-
   this->allocator = other.allocator;
   this->len       = other.len;
   this->cap       = other.len;

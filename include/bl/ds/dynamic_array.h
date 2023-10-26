@@ -8,16 +8,16 @@
 #include "bl/primitives.h"      // const_cstr, usize, u8
 #include "bl/result.h"          // Error, Result, Ok, Err
 
+#include <cstdio>
 #include <cstdlib>          // abort
-#include <cstring>          // memcpy
 #include <initializer_list> // initializer_list
 
 namespace bl::ds {
 using namespace primitives;
 
-// TODO: Add error section on doc comments (see String)
-//
 // TODO: Replace raw casts with static_casts
+//
+// TODO: Add `filter` function
 
 // Possible error types returned by `DynamicArray`'s methods.
 struct DynamicArrayError : public Error {
@@ -30,7 +30,6 @@ public:
     BufferResizeFailed,
     IndexOutOfBounds,
     InvalidPop,
-    MemcpyFailed,
     InvalidArray,
   };
 
@@ -43,10 +42,10 @@ private:
   ErrorType type;
 };
 
-namespace {
+namespace dynamic_array_internal {
 extern mem::Allocator DEFAULT_C_ALLOCATOR;
 extern const u8       RESIZE_FACTOR;
-} // namespace
+} // namespace dynamic_array_internal
 
 template <typename T> struct DynamicArray {
 public:
@@ -55,12 +54,17 @@ public:
   ///
   /// ## Note
   /// Nothing is allocated until the first push.
-  DynamicArray() { this->allocator = &DEFAULT_C_ALLOCATOR; }
+  DynamicArray() {
+    this->allocator = &dynamic_array_internal::DEFAULT_C_ALLOCATOR;
+  }
 
   /// Creates an empty dynamic array backed by the given allocator.
   ///
   /// ## Note
   /// Nothing is allocated until the first push.
+  ///
+  /// ## Panics
+  /// - Panics if the allocator is null.
   DynamicArray(mem::Allocator* allocator) {
     // Input validation
     {
@@ -79,6 +83,11 @@ public:
   /// ## Note
   /// If the capacity is `0`, then this just calls the
   /// `DynamicArray(mem::Allocator*)` constructor (nothing gets allocated).
+  ///
+  /// ## Panics
+  /// - Panics if the allocator is null.
+  /// - Panics if the allocator is unable to allocate space for the array's
+  /// buffer.
   DynamicArray(mem::Allocator* allocator, usize capacity) {
     // Input validation
     {
@@ -105,9 +114,13 @@ public:
   /// ## Note
   /// If the capacity is `0`, then this just calls the
   /// `DynamicArray(mem::Allocator*)` constructor (nothing gets allocated).
+  ///
+  /// ## Panics
+  /// - Panics if the allocator is unable to allocate space for the array's
+  /// buffer.
   DynamicArray(usize capacity) {
 
-    this->allocator = &DEFAULT_C_ALLOCATOR;
+    this->allocator = &dynamic_array_internal::DEFAULT_C_ALLOCATOR;
 
     if (capacity != 0) {
       T* data = (T*)this->allocator->allocRaw(capacity * sizeof(T));
@@ -125,6 +138,11 @@ public:
   //     dynamic_array_internal::DynamicArrayError::BufferAllocationFailed));
   // return;
   /// initializer list.
+  ///
+  /// ## Panics
+  /// - Panics if the allocator is null.
+  /// - Panics if the allocator is unable to allocate space for the array's
+  /// buffer.
   DynamicArray<T>(mem::Allocator* allocator, std::initializer_list<T> list) {
     // Input validation
     {
@@ -158,8 +176,12 @@ public:
 
   /// Creates a dynamic array backed by the `mem::CAllocator` with data from the
   /// initializer list.
+  ///
+  /// ## Panics
+  /// - Panics if the allocator is unable to allocate space for the array's
+  /// buffer.
   DynamicArray<T>(std::initializer_list<T> list) {
-    this->allocator       = &DEFAULT_C_ALLOCATOR;
+    this->allocator       = &dynamic_array_internal::DEFAULT_C_ALLOCATOR;
 
     // Allocate buffer for dynamic array
     const usize list_size = list.size();
@@ -186,6 +208,10 @@ public:
   /// ## Note
   /// The capacity of the cloned array will not be the same as the orininal's,
   /// but the length and elements will be the same.
+  ///
+  /// ## Panics
+  /// - Panics if the allocator is unable to allocate space for the array's
+  /// buffer.
   DynamicArray(const DynamicArray& other) {
     this->allocator = other.allocator;
     this->len       = other.len;
@@ -198,27 +224,91 @@ public:
     }
     this->data = data;
 
-    T* copied  = memcpy(this->data, other.data, this->len * sizeof(T));
-    if (copied == nullptr) {
-      BL_PANIC(DynamicArrayError(DynamicArrayError::MemcpyFailed).errMsg());
+    for (usize i = 0; i < this->len; i++) {
+      this->data[i] = other.data[i];
     }
-    this->data = copied;
+  }
+
+  /// Moves the dynamic array.
+  DynamicArray(DynamicArray&& other) {
+    this->allocator = other.allocator;
+    this->len       = other.len;
+    this->cap       = other.cap;
+    this->data      = other.data;
+
+    other.data      = nullptr;
+    other.len       = 0;
+    other.cap       = 0;
   }
 
   /// Deallocates memory used by the array.
   ~DynamicArray() {
+    for (usize i = 0; i < this->len; i++) {
+      this->data[i].~T();
+    }
+
     if (this->cap != 0) {
       this->allocator->deallocRaw(this->data);
     }
   }
 
-  DynamicArray& operator=(const DynamicArray&) = default;
+  /// Copy assigns an array.
+  DynamicArray& operator=(const DynamicArray& other) {
+    if (this == other) {
+      return *this;
+    }
+
+    // Free old buffer if it exists
+    if (this->data != nullptr) {
+      this->allocator->deallocRaw(this->data);
+    }
+    this->allocator = other.allocator;
+
+    // Allocate new buffer
+    T* data         = (T*)this->allocator->allocRaw(other.len * sizeof(T));
+    if (this->data == nullptr) {
+      BL_PANIC(DynamicArrayError(DynamicArrayError::BufferAllocationFailed)
+                   .errMsg());
+    }
+
+    // Copy data to new buffer
+    for (usize i = 0; i < other.len; i++) {
+      data[i] = other.data[i];
+    }
+
+    this->data = data;
+    this->len  = other.len;
+    this->cap  = other.len;
+  }
+
+  /// Move assigns an array.
+  DynamicArray& operator=(DynamicArray&& other) {
+    if (this->data == other.data) {
+      return *this;
+    }
+
+    // Free old buffer if it exists
+    if (this->data != nullptr) {
+      this->allocator->deallocRaw(this->data);
+    }
+
+    this->allocator = other.allocator;
+    this->data      = other.data;
+    this->len       = other.len;
+    this->cap       = other.cap;
+
+    other.data      = nullptr;
+    other.len       = 0;
+    other.cap       = 0;
+
+    return *this;
+  }
 
   /// Operator overload for index operator.
   ///
   /// ## Panics
   /// - Panics if the index is out of the array's bounds.
-  T&            operator[](usize idx) {
+  T& operator[](usize idx) {
     // Input validation
     {
       if (idx > this->len - 1) {
@@ -274,6 +364,8 @@ public:
 
     this->data[this->len]  = val;
     this->len             += 1;
+
+    return Ok(Void());
   }
 
   /// Removes and returns the last element in the array.
@@ -436,7 +528,7 @@ private:
   /// Function to resize the array.
   Result<Void, DynamicArrayError> resize(void) {
     // Resize the buffer to new capacity
-    usize new_cap = this->cap * RESIZE_FACTOR;
+    usize new_cap = this->cap * dynamic_array_internal::RESIZE_FACTOR;
     T*    resized =
         (T*)this->allocator->resizeRaw(this->data, new_cap * sizeof(T));
     if (resized == nullptr) {
@@ -446,6 +538,8 @@ private:
     // Set the buffer to the resized one
     this->data = resized;
     this->cap  = new_cap;
+
+    return Ok(Void());
   }
 };
 
